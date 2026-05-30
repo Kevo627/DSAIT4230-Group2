@@ -1,0 +1,8 @@
+huggingface_hub
+datasets
+pandas
+Pillow
+transformers
+torch
+torchvision
+bert-score
