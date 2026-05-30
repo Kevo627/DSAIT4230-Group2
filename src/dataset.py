@@ -1,10 +1,3 @@
-"""
-ClearVQA dataset loader.
-
-Loads val_annotated.jsonl, filters for intent underspecification,
-and returns clean example dicts ready for the prompting pipeline.
-"""
-
 import os
 import json
 import pandas as pd
@@ -14,8 +7,7 @@ from typing import Optional
 JSONL_PATH = os.path.join("data", "val_annotated.jsonl")
 IMAGES_DIR = os.path.join("data", "images", "images")
 
-# Exact string value used in the ambiguity_category field.
-# Run inspect_categories() once after download to confirm this.
+
 INTENT_CATEGORY = "intent"
 
 
@@ -24,17 +16,6 @@ def load_intent_examples(
     images_dir: str = IMAGES_DIR,
     limit: Optional[int] = None,
 ) -> list[dict]:
-    """
-    Load and filter the val_annotated.jsonl for intent underspecification examples.
-
-    Returns a list of dicts with fields:
-        id                   : str
-        image_path           : str  (full path to image file)
-        ambiguous_question   : str  (blurred_question in the raw data)
-        gold_intended_question: str (original clear question)
-        gold_clarification   : str  (ideal clarification question)
-        gold_answer          : str
-    """
     df = pd.read_json(jsonl_path, lines=True)
 
     if "ambiguity_category" not in df.columns:
@@ -56,16 +37,15 @@ def load_intent_examples(
 
     examples = []
     for _, row in intent_df.iterrows():
-        # The image field is a filename like "train_000000.jpg".
-        # Adjust the join path if the zip extracted into a subfolder.
         image_path = os.path.join(images_dir, row["image"])
         examples.append({
-            "id": row["question_id"],
+            "id": str(row["question_id"]),
             "image_path": image_path,
             "ambiguous_question": row["blurred_question"],
             "gold_intended_question": row["question"],
             "gold_clarification": row["clarification_question"],
-            "gold_answer": row["gold_answer"],
+            "gold_answer": str(row["gold_answer"]),
+            "answers": [str(a) for a in row.get("answers", [])],
         })
 
     return examples

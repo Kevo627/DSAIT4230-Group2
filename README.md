@@ -1,6 +1,16 @@
 # DSAIT4230-Group2
 
 ## Setup
+
+### 0. Venv setup
+python -m venv .venv
+source .venv/bin/activate
+
+pip install -r requirements.txt
+
+python -c "import torch; print(torch.backends.mps.is_available())"
+
+python scripts/run_baselines.py --limit 2 --conditions standard
 ### 1. Clone and install dependencies
 pip install -r requirements.txt
 
@@ -37,3 +47,4 @@ python src/dataset.py
 NOTE: When downloading, training images are downloaded too, which took up unnecessary space. I deleted those using this on MacOS: 
 find data/images/images -name "train_*.jpg" | wc -l
 find data/images/images -name "train_*.jpg" -delete
+

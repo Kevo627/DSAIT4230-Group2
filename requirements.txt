@@ -5,4 +5,7 @@ Pillow
 transformers
 torch
 torchvision
+torchaudio
 bert-score
+tqdm
+qwen-vl-utils
