@@ -56,7 +56,7 @@ class VLMWrapper:
         prompt: str,
         max_new_tokens: int = 512,
         do_sample: bool = False,
-        temperature: float = 1.0,
+        temperature: float = 0.2,
         top_p: float = 1.0,
     ) -> str:
         self.load()
