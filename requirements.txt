@@ -1,0 +1,11 @@
+huggingface_hub
+datasets
+pandas
+Pillow
+transformers
+torch
+torchvision
+torchaudio
+bert-score
+tqdm
+qwen-vl-utils
