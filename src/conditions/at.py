@@ -5,8 +5,8 @@ The user's question contains intent underspecification — the user's underlying
 desired output, success criteria, or expected format are unclear or open to multiple \
 interpretations.
 
-Given the image and the user's question below, generate ONE clarification question \
-targeting the missing intent.
+Given the image and the user's question below, generate ONE clarification question targeting the missing intent.
+The clarification question must ask the user what they want to know, not what is visible in the image. The user is asking you to describe the image — ask them which specific aspect or goal they have in mind.
 
 User question: {ambiguous_question}
 

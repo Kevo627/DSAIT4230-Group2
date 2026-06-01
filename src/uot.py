@@ -43,139 +43,26 @@ def generate_intents(
 
 
 
-_SIMULATE_RESPONSE_PROMPT = """You are a user who asked: "{ambiguous_question}"
+_DISAMBIGUATION_PROMPT = """You are evaluating how well a clarification question disambiguates user intent.
 
-You were then asked the clarification question: "{cq}"
+Original ambiguous question: "{ambiguous_question}"
+Clarification question being evaluated: "{cq}"
 
-Your actual underlying goal is: "{intent}"
+Possible user intents:
+{intents_block}
 
-Respond to the clarification question as a real user would — clarify what you \
-are looking for based on your goal. Keep it brief and natural.
+How many of these {n} intents would give DISTINCTLY DIFFERENT answers to the \
+clarification question? Count only intents whose responses would clearly differ \
+from each other — not just different wording, but different meaning.
 
 Return ONLY a JSON object, no extra text:
 {{
-    "response": "..."
+    "distinct_responses": <integer from 1 to {n}>,
+    "reasoning": "..."
 }}"""
 
 
-def simulate_response(
-    model: VLMWrapper,
-    image_path: str,
-    ambiguous_question: str,
-    cq: str,
-    intent: str,
-) -> str:
-    """Simulate what a user with a specific intent would say in response to a CQ."""
-    prompt = _SIMULATE_RESPONSE_PROMPT.format(
-        ambiguous_question=ambiguous_question,
-        cq=cq,
-        intent=intent,
-    )
-    raw = model.generate(image_path, prompt)
-    parsed = parse_json_output(raw)
-    return parsed.get("response", raw.strip())
-
-
-
-_GROUP_PROMPT = """\
-A user asked an ambiguous question and was given a clarification question. \
-Below are responses from users with different underlying goals.
-
-Clarification question: "{cq}"
-
-Responses (indexed from 0):
-{responses_block}
-
-Group these responses by whether they convey the same type of answer — \
-i.e., a system reading only the response could not distinguish between \
-the users in the same group.
-
-Return ONLY a JSON object where keys are group IDs (integers starting from 0) \
-and values are lists of response indices. Every index (0 to {last_idx}) must \
-appear in exactly one group. No extra text:
-{{
-    "groups": {{"0": [<indices>], "1": [<indices>], ...}}
-}}"""
-
-
-def group_responses(
-    model: VLMWrapper,
-    image_path: str,
-    cq: str,
-    responses: list[str],
-) -> list[int]:
-    """
-    Cluster simulated responses into distinguishable groups using the VLM.
-
-    Returns a list of group IDs, one per response (same length as `responses`).
-    E.g. [0, 1, 0, 2] means responses 0 and 2 are in the same group.
-    Falls back to all-distinct groups on parse failure.
-    """
-    responses_block = "\n".join(f'  {i}: "{r}"' for i, r in enumerate(responses))
-    prompt = _GROUP_PROMPT.format(
-        cq=cq,
-        responses_block=responses_block,
-        last_idx=len(responses) - 1,
-    )
-    raw = model.generate(image_path, prompt)
-    parsed = parse_json_output(raw)
-    groups_dict = parsed.get("groups", {})
-
-    group_ids = list(range(len(responses)))  # fallback: all distinct
-    if isinstance(groups_dict, dict) and len(groups_dict) > 0:
-        assigned = [False] * len(responses)
-        candidate = list(range(len(responses)))
-        for gid_str, indices in groups_dict.items():
-            if not isinstance(indices, list):
-                continue
-            try:
-                gid = int(gid_str)
-            except ValueError:
-                continue
-            for idx in indices:
-                if isinstance(idx, int) and 0 <= idx < len(responses):
-                    candidate[idx] = gid
-                    assigned[idx] = True
-        # only accept if every index was assigned
-        if all(assigned):
-            group_ids = candidate
-
-    return group_ids
-
-
-
-def compute_ig(group_ids: list[int], n_intents: int) -> float:
-    """
-    Expected information gain of a CQ given the response partition.
-
-    With a uniform prior P(i_k) = 1/N:
-      H_prior = log(N)
-      E[H_posterior | response] = sum_g (|g|/N) * log(|g|)
-      IG = H_prior - E[H_posterior | response]
-
-    A CQ where every intent lands in its own group → IG = log(N) (maximum).
-    A CQ where all intents land in one group     → IG = 0 (uninformative).
-    """
-    if n_intents <= 1:
-        return 0.0
-
-    h_prior = math.log(n_intents)
-
-    group_sizes: dict[int, int] = {}
-    for gid in group_ids:
-        group_sizes[gid] = group_sizes.get(gid, 0) + 1
-
-    expected_posterior_h = sum(
-        (size / n_intents) * math.log(size)
-        for size in group_sizes.values()
-        if size > 0
-    )
-
-    return h_prior - expected_posterior_h
-
-
-
-def score_cq(
+def score_cq_disambiguation(
     model: VLMWrapper,
     image_path: str,
     ambiguous_question: str,
@@ -183,21 +70,32 @@ def score_cq(
     intents: list[str],
 ) -> dict:
     """
-    Score a single CQ candidate by expected IG over the intent space.
-
-    Returns a dict with the score and all intermediate outputs for traceability.
+    Score a CQ by asking the VLM how many intents would give distinctly
+    different answers to it. Higher = more informative CQ.
+    Returns a dict with the score and reasoning for traceability.
     """
-    responses = [
-        simulate_response(model, image_path, ambiguous_question, cq, intent)
-        for intent in intents
-    ]
-    group_ids = group_responses(model, image_path, cq, responses)
-    ig = compute_ig(group_ids, len(intents))
+    intents_block = "\n".join(f"  {i + 1}. {intent}" for i, intent in enumerate(intents))
+    prompt = _DISAMBIGUATION_PROMPT.format(
+        ambiguous_question=ambiguous_question,
+        cq=cq,
+        intents_block=intents_block,
+        n=len(intents),
+    )
+    raw = model.generate(image_path, prompt)
+    parsed = parse_json_output(raw)
+
+    distinct = parsed.get("distinct_responses", 1)
+    if not isinstance(distinct, int):
+        try:
+            distinct = int(distinct)
+        except (ValueError, TypeError):
+            distinct = 1
+    distinct = max(1, min(distinct, len(intents)))
+
     return {
         "cq": cq,
-        "ig": ig,
-        "simulated_responses": responses,
-        "group_ids": group_ids,
+        "disambiguation_score": distinct,
+        "reasoning": parsed.get("reasoning", ""),
     }
 
 
@@ -209,24 +107,23 @@ def select_best_cq(
     n_intents: int = 4,
 ) -> dict:
     """
-    Build the intent space, score each candidate CQ by IG, return the best.
-
-    Returns a dict with intents, per-candidate scores, and the selected CQ.
+    Build the intent space, score each candidate CQ by disambiguation score,
+    return the best. Ties broken by first occurrence.
     """
     intents = generate_intents(model, image_path, ambiguous_question, n=n_intents)
 
     scores = [
-        score_cq(model, image_path, ambiguous_question, cq, intents)
+        score_cq_disambiguation(model, image_path, ambiguous_question, cq, intents)
         for cq in cq_candidates
     ]
 
-    best = max(scores, key=lambda s: s["ig"])
+    best = max(scores, key=lambda s: s["disambiguation_score"])
 
     return {
         "intents": intents,
         "candidate_scores": scores,
         "best_cq": best["cq"],
-        "best_ig": best["ig"],
+        "best_disambiguation_score": best["disambiguation_score"],
     }
 
 

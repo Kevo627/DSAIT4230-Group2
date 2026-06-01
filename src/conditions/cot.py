@@ -2,8 +2,8 @@ from src.conditions.base import BaseCondition
 
 PROMPT = """\
 Given the image and the user's question below, first briefly reason about why the \
-question is ambiguous and what information is missing. Then generate ONE clarification \
-question based on your reasoning.
+question is ambiguous and what information is missing. Then generate ONE clarification question based on your reasoning.
+The clarification question must ask the user what they want to know, not what is visible in the image. The user is asking you to describe the image — ask them which specific aspect or goal they have in mind.
 
 User question: {ambiguous_question}
 

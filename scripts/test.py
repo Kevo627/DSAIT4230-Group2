@@ -1,11 +1,3 @@
-"""
-Run one example through the full pipeline and print every step.
-
-Usage:
-    python scripts/test.py
-    python scripts/test.py --condition at_cot --n_candidates 3
-"""
-
 import argparse
 import json
 import os
@@ -79,11 +71,10 @@ def main():
         candidates, n_intents=args.n_intents,
     )
     for s in uot_result["candidate_scores"]:
-        print(f"  IG={s['ig']:.4f}  CQ: {s['cq']}")
-        for j, (resp, gid) in enumerate(zip(s["simulated_responses"], s["group_ids"])):
-            print(f"    intent {j} (group {gid}): {resp}")
+        print(f"  score={s['disambiguation_score']}  CQ: {s['cq']}")
+        print(f"    reasoning: {s['reasoning']}")
 
-    print(f"\n[4] Selected CQ (IG={uot_result['best_ig']:.4f}): {uot_result['best_cq']}")
+    print(f"\n[4] Selected CQ (score={uot_result['best_disambiguation_score']}): {uot_result['best_cq']}")
 
     print("\n[5] Simulating user response ...")
     user_response = simulate_user_response(

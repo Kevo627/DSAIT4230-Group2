@@ -6,8 +6,8 @@ desired output, success criteria, or expected format are unclear or open to mult
 interpretations.
 
 Given the image and the user's question below, first reason about what specific intent \
-information is missing. Then generate ONE clarification question that targets that \
-missing intent.
+information is missing. Then generate ONE clarification question that targets that missing intent.
+The clarification question must ask the user what they want to know, not what is visible in the image. The user is asking you to describe the image — ask them which specific aspect or goal they have in mind.
 
 User question: {ambiguous_question}
 
