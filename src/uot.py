@@ -1,33 +1,28 @@
-"""
-Uncertainty-of-Thoughts (UoT) utilities for intent-underspecified VQA.
-
-Pipeline stages implemented here:
-  1. generate_intents        — build intent possibility space from (image, question)
-  2. score_cq                — compute expected information gain for one CQ candidate
-     ├── simulate_response   — VLM-simulate user reply per intent
-     ├── group_responses     — cluster responses into distinguishable groups
-     └── compute_ig          — entropy reduction from grouping
-  3. select_best_cq          — score all candidates, return best
-  4. simulate_user_response  — oracle-free user response to selected CQ
-  5. generate_final_answer   — final answer conditioned on (image, q, cq, response)
-"""
-
 import math
 from src.model import VLMWrapper, parse_json_output
 
 
 
-_INTENT_PROMPT = """\
-You are analyzing a visual question that is ambiguous due to intent underspecification.
+_INTENT_PROMPT = """You are analyzing a visual question that is ambiguous due to intent underspecification.
 
 The user asked: "{ambiguous_question}"
 
-List {n} distinct, plausible interpretations of what the user wants to know about \
-the image. Each interpretation should represent a different user goal or aspect.
+List {n} distinct, plausible user goals behind this question. Each goal should \
+describe a different specific aspect the user might care about. Write each as a \
+full sentence starting with "The user wants to know".
+
+For example, for "Tell me about this building":
+- "The user wants to know the architectural style and design of the building"
+- "The user wants to know the historical background of the building"
+- "The user wants to know the current purpose or function of the building"
 
 Return ONLY a JSON object, no extra text:
 {{
-    "intents": ["...", "...", ...]
+    "intents": [
+        "The user wants to know ...",
+        "The user wants to know ...",
+        ...
+    ]
 }}"""
 
 
@@ -48,15 +43,14 @@ def generate_intents(
 
 
 
-_SIMULATE_RESPONSE_PROMPT = """\
-You are a user looking at this image. You asked: "{ambiguous_question}"
+_SIMULATE_RESPONSE_PROMPT = """You are a user who asked: "{ambiguous_question}"
 
-You were then asked the following clarification question: "{cq}"
+You were then asked the clarification question: "{cq}"
 
 Your actual underlying goal is: "{intent}"
 
-Answer the clarification question briefly and naturally, as a real user would. \
-Do not reveal your underlying goal explicitly.
+Respond to the clarification question as a real user would — clarify what you \
+are looking for based on your goal. Keep it brief and natural.
 
 Return ONLY a JSON object, no extra text:
 {{
@@ -237,15 +231,13 @@ def select_best_cq(
 
 
 
-_USER_RESPONSE_PROMPT = """You are a user who asked an ambiguous question and received a clarification request.
+_USER_RESPONSE_PROMPT = """You are a user who asked: "{ambiguous_question}"
 
-Your original question: "{ambiguous_question}"
-Clarification question asked: "{cq}"
+You were then asked the clarification question: "{cq}"
 
-You do not have access to the image — you asked the question because you want \
-to learn something from it. Respond naturally to clarify what specific aspect \
-or information you are looking for. Do not describe the image or answer the \
-question yourself.
+Respond to the clarification question by describing what specific information \
+you are looking for. Clarify your intent — which aspect of the topic matters \
+to you. Do not describe the image or give the final answer yourself.
 
 Return ONLY a JSON object, no extra text:
 {{
