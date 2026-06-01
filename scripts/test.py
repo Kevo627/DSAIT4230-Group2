@@ -14,7 +14,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.dataset import load_intent_examples
-from src.model import VLMWrapper
+from src.model import VLMWrapper, DEFAULT_MODEL
 from src.conditions.standard import StandardCondition
 from src.conditions.at import ATCondition
 from src.conditions.cot import CoTCondition
@@ -43,6 +43,11 @@ def main():
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--top_p", type=float, default=0.9)
     parser.add_argument("--model", type=str, default=None)
+    parser.add_argument(
+    "--load_in_4bit",
+    action="store_true",
+    help="Load model in 4-bit (needed for 7B on a 15GB GPU)",
+)
     args = parser.parse_args()
 
     examples = load_intent_examples(limit=1)
@@ -56,7 +61,10 @@ def main():
     print(f"Image path          : {example['image_path']}")
     print(f"Image exists        : {os.path.exists(example['image_path'])}")
 
-    model = VLMWrapper(model_name=args.model) if args.model else VLMWrapper()
+    model = VLMWrapper(
+    model_name=args.model or DEFAULT_MODEL,
+    load_in_4bit=args.load_in_4bit,
+)
     condition = ALL_CONDITIONS[args.condition](model)
 
     print(f"\n[1] Generating {args.n_candidates} CQ candidates ({args.condition}) ...")
