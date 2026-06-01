@@ -31,24 +31,40 @@ def _get_dtype(device: str):
 
 
 class VLMWrapper:
-    def __init__(self, model_name: str = DEFAULT_MODEL):
+    def __init__(self, model_name: str = DEFAULT_MODEL, load_in_4bit: bool = False):
         self.model_name = model_name
+        self.load_in_4bit = load_in_4bit
         self.device = _get_device()
-        self._model = None
-        self._processor = None
 
     def load(self):
         if self._model is not None:
             return
-        dtype = _get_dtype(self.device)
-        print(f"Loading {self.model_name} on {self.device} ({dtype}) ...")
-        self._model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-            self.model_name,
-            torch_dtype=dtype,
-        ).to(self.device)
-        self._processor = AutoProcessor.from_pretrained(self.model_name)
-        self._model.eval()
-        print("Model ready.")
+        if self.load_in_4bit and self.device == "cuda":
+            from transformers import BitsAndBytesConfig
+            print(f"Loading {self.model_name} in 4-bit on {self.device} ...")
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4",
+            )
+            self._model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+                self.model_name,
+                quantization_config=bnb_config,
+                device_map="auto",
+            )
+        else:
+            dtype = _get_dtype(self.device)
+            print(f"Loading {self.model_name} on {self.device} ({dtype}) ...")
+            self._model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+                self.model_name,
+                torch_dtype=dtype,
+            ).to(self.device)
+    
+    @property
+    def _input_device(self) -> str:
+        return "cuda" if self.device == "cuda" else self.device
+
 
     def generate(
         self,
@@ -81,7 +97,7 @@ class VLMWrapper:
             videos=video_inputs,
             padding=True,
             return_tensors="pt",
-        ).to(self.device)
+        ).to(self._input_device)
 
         gen_kwargs = dict(max_new_tokens=max_new_tokens)
         if do_sample:
