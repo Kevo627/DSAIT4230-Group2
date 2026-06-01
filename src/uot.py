@@ -237,13 +237,15 @@ def select_best_cq(
 
 
 
-_USER_RESPONSE_PROMPT = """\
-You are a user looking at this image. You asked: "{ambiguous_question}"
+_USER_RESPONSE_PROMPT = """You are a user who asked an ambiguous question and received a clarification request.
 
-You were then asked the following clarification question: "{cq}"
+Your original question: "{ambiguous_question}"
+Clarification question asked: "{cq}"
 
-Answer the clarification question briefly and naturally, based only on \
-what you see in the image.
+You do not have access to the image — you asked the question because you want \
+to learn something from it. Respond naturally to clarify what specific aspect \
+or information you are looking for. Do not describe the image or answer the \
+question yourself.
 
 Return ONLY a JSON object, no extra text:
 {{
