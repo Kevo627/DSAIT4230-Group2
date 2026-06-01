@@ -1,3 +1,11 @@
+"""
+Smoke test: run one example through the full pipeline and print every step.
+
+Usage:
+    python scripts/smoke_test.py
+    python scripts/smoke_test.py --condition at_cot --n_candidates 3
+"""
+
 import argparse
 import json
 import os
@@ -13,7 +21,6 @@ from src.conditions.cot import CoTCondition
 from src.conditions.at_cot import ATCoTCondition
 from src.uot import (
     generate_intents,
-    score_cq,
     select_best_cq,
     simulate_user_response,
     generate_final_answer,
