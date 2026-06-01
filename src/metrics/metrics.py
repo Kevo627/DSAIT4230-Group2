@@ -128,9 +128,9 @@ def mean_convo_length(conversation_lengths: list[int]) -> float:
 
     return sum(conversation_lengths) / len(conversation_lengths)
 
-#### Sampling measures
+#### Now for the measures that need sampling
 
-def distribution_comp(samples: list[str], scorer) -> dist[str, float]:
+def distribution_comp(samples: list[str], scorer) -> dict[str, float]:
     
     normalized_samples = [scorer.normalize(sample) for sample in samples]
 
@@ -171,3 +171,54 @@ def entropy_reduc(samples_before: list[str], samples_after: list[str], scorer) -
 
 ### Ground truth Probability
 
+def ground_truth_probability(samples: list[str], ground_truth: str, scorer) -> float:
+    
+    dist = distribution_comp(samples, scorer)
+    ground_truth = scorer.normalize(ground_truth)
+
+    return dist.get(ground_truth, 0.0)
+
+#### Majority answer option
+
+def majority_answer(answers: list[str], scorer):
+    normalized = [scorer.normalized(answer) for answer in answers]
+    
+    return Counter(normalized).most_common(1)[0][0]
+
+def majority_answer_change(samples_before, samples_after, answers, scorer) -> dict:
+    target = majority_answer(answers, scorer)
+    
+    prob_before = ground_truth_probability(samples_before, target, scorer)
+    prob_after = ground_truth_probability(samples_after, target, scorer)
+    
+    return {
+        "majority_answer": target,
+        "p_majority_before": prob_before,
+        "p_majority_after": prob_after,
+        "delta_p_majority": prob_after - prob_before,
+    }
+
+#### Any valid option
+
+def valid_answer_prob(samples: list[str], answers: list[str], scorer) -> float:
+    
+    valid_answers = {scorer.normalize(ans) for ans in answers}
+
+    normalized_samples = [scorer.normalize(sample) for sample in samples]
+
+    num_valid = sum(sample in valid_answers for sample in normalized_samples)
+
+    return num_valid / len(normalized_samples)
+
+def valid_probability_change(samples_before: list[str], samples_after: list[str], answers: list[str], scorer) -> dict:
+
+    p_before = valid_answer_prob(samples_before, answers, scorer)
+
+    p_after = valid_answer_prob(samples_after, answers, scorer)
+
+    return {
+        "p_valid_before": p_before,
+        "p_valid_after": p_after,
+        "delta_p_valid": p_after - p_before,
+    }
+    
