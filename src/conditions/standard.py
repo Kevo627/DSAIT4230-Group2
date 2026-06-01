@@ -1,13 +1,8 @@
 from src.conditions.base import BaseCondition
 
-PROMPT = """The user's question is ambiguous because their intended goal is unclear.
+PROMPT = """Given the image and the user's visual question, generate a clarifying question to better understand the user's intent.
 
-Given the image and the user's question below, generate ONE clarification question that asks the user to specify which aspect or goal they have in mind.
-
-The user is asking YOU to describe the image — they cannot see it themselves. Do NOT ask them what is visible. Instead, ask them to clarify which specific aspect or goal they have in mind.
-
-BAD (asks user to observe image): "What safety gear is visible on the skateboarder?"
-GOOD (asks user to clarify intent): "Are you asking about a specific type of gear, or whether the skateboarder has any protection at all?"
+The clarification question should confirm a specific interpretation of the user's goal, not ask the user to describe the image. Prefer a polar format: "Are you asking about X?" For example: "Are you asking about the architectural style of the building, or its historical background?"
 
 User question: {ambiguous_question}
 

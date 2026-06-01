@@ -1,20 +1,28 @@
+"""
+Uncertainty-of-Thoughts (UoT) utilities for intent-underspecified VQA.
+
+Pipeline stages implemented here:
+  1. generate_intents        — build intent possibility space from (image, question)
+  2. score_cq                — compute expected information gain for one CQ candidate
+     ├── simulate_response   — VLM-simulate user reply per intent
+     ├── group_responses     — cluster responses into distinguishable groups
+     └── compute_ig          — entropy reduction from grouping
+  3. select_best_cq          — score all candidates, return best
+  4. simulate_user_response  — oracle-free user response to selected CQ
+  5. generate_final_answer   — final answer conditioned on (image, q, cq, response)
+"""
+
 import math
 from src.model import VLMWrapper, parse_json_output
 
 
+# ── 1. Intent-space construction ──────────────────────────────────────────────
 
 _INTENT_PROMPT = """You are analyzing a visual question that is ambiguous due to intent underspecification.
 
 The user asked: "{ambiguous_question}"
 
-List {n} distinct, plausible user goals behind this question. Each goal should \
-describe a different specific aspect the user might care about. Write each as a \
-full sentence starting with "The user wants to know".
-
-For example, for "Tell me about this building":
-- "The user wants to know the architectural style and design of the building"
-- "The user wants to know the historical background of the building"
-- "The user wants to know the current purpose or function of the building"
+List {n} distinct, plausible user goals behind this question. Each goal should describe a different specific aspect the user might care about. Write each as a full sentence starting with "The user wants to know".
 
 Return ONLY a JSON object, no extra text:
 {{
@@ -42,6 +50,7 @@ def generate_intents(
     return [str(i) for i in intents[:n]]
 
 
+# ── 2. CQ disambiguation scoring ──────────────────────────────────────────────
 
 _DISAMBIGUATION_PROMPT = """You are evaluating how well a clarification question disambiguates user intent.
 
@@ -99,6 +108,8 @@ def score_cq_disambiguation(
     }
 
 
+# ── 3. Select best CQ ────────────────────────────────────────────────────────
+
 def select_best_cq(
     model: VLMWrapper,
     image_path: str,
@@ -127,14 +138,15 @@ def select_best_cq(
     }
 
 
+# ── 4. Simulate user response (oracle-free, for final answer step) ─────────────
 
 _USER_RESPONSE_PROMPT = """You are a user who asked: "{ambiguous_question}"
 
-You were then asked the clarification question: "{cq}"
+You were asked this clarification question: "{cq}"
 
-Respond to the clarification question by describing what specific information \
-you are looking for. Clarify your intent — which aspect of the topic matters \
-to you. Do not describe the image or give the final answer yourself.
+The clarification question asks you to confirm what you want to know. Answer it directly — typically yes or no, followed by a brief clarification of your actual goal if needed.
+
+Example: if asked "Are you asking about the architectural style of the building, or its historical background?", a good response is: "I am asking about its historical background."
 
 Return ONLY a JSON object, no extra text:
 {{
@@ -161,6 +173,7 @@ def simulate_user_response(
     return parsed.get("response", raw.strip())
 
 
+# ── 5. Final answer generation ────────────────────────────────────────────────
 
 _FINAL_ANSWER_PROMPT = """\
 You are answering a visual question about an image.
