@@ -120,10 +120,6 @@ def improvement_over_baseline(strategy_score: float, baseline_score: float) -> d
         "diff_percent": diff_percent,
     }
 
-### Entropy reduction (STILL TO DO)
-
-
-
 ### Mean conversation length
 
 def mean_convo_length(conversation_lengths: list[int]) -> float:
@@ -131,3 +127,47 @@ def mean_convo_length(conversation_lengths: list[int]) -> float:
         return 0.0
 
     return sum(conversation_lengths) / len(conversation_lengths)
+
+#### Sampling measures
+
+def distribution_comp(samples: list[str], scorer) -> dist[str, float]:
+    
+    normalized_samples = [scorer.normalize(sample) for sample in samples]
+
+    counts = Counter(normalized_samples)
+    total = sum(counts.values())
+
+    if total == 0:
+        return {}
+
+    return {
+        answer: count / total
+        for answer, count in counts.items()
+    }
+    
+### Entropy
+
+def entropy(distribution: dict[str, float]):
+    
+    entropy = -sum(p * math.log(p) for p in distribution.values() if p > 0)
+    
+    return entropy
+
+
+def entropy_reduc(samples_before: list[str], samples_after: list[str], scorer) -> dict:
+    dist_before = distribution_comp(samples_before, scorer)
+    dist_after = distribution_comp(samples_after, scorer)
+    
+    h_before = entropy(dist_before)
+    h_after = entropy(dist_after)
+
+    return {
+        "distribution_before": dist_before,
+        "distribution_after": dist_after,
+        "entropy_before": h_before,
+        "entropy_after": h_after,
+        "entropy_reduction": h_before - h_after,
+    }
+
+### Ground truth Probability
+
