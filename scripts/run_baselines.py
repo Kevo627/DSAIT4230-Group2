@@ -31,12 +31,16 @@ from src.conditions.standard import StandardCondition
 from src.conditions.at import ATCondition
 from src.conditions.cot import CoTCondition
 from src.conditions.at_cot import ATCoTCondition
+from src.conditions.at_subtype import ATSubtypeCondition
+from src.conditions.answer_impact import AnswerImpactCondition
 
 ALL_CONDITIONS = {
     "standard": StandardCondition,
     "at": ATCondition,
     "cot": CoTCondition,
     "at_cot": ATCoTCondition,
+    "at_subtype": ATSubtypeCondition,
+    "answer_impact": AnswerImpactCondition,
 }
 
 DEFAULT_OUTPUT = os.path.join("results", "baselines.jsonl")
@@ -67,7 +71,7 @@ def main():
         nargs="+",
         choices=list(ALL_CONDITIONS.keys()),
         default=list(ALL_CONDITIONS.keys()),
-        help="Which conditions to run (default: all four)",
+        help="Which conditions to run (default: all available conditions)",
     )
     parser.add_argument(
         "--limit",
