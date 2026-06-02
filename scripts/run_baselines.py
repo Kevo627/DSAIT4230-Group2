@@ -99,7 +99,7 @@ def main():
     examples = load_intent_examples(limit=args.limit)
     print(f"Loaded {len(examples)} examples")
 
-    completed: set[tuple] = set()
+    completed = load_completed(args.output) if args.resume else set()
 
     model = VLMWrapper(model_name=args.model) if args.model else VLMWrapper()
     conditions = [ALL_CONDITIONS[name](model) for name in args.conditions]
@@ -111,7 +111,7 @@ def main():
     )
     print(f"Total calls: {total} | To run: {total - skipped} | Skipped: {skipped}")
 
-    with open(args.output, "w") as out_f:
+    with open(args.output, "a" if args.resume else "w") as out_f:
         with tqdm(total=total - skipped, desc="Running conditions") as pbar:
             for example in examples:
                 for condition in conditions:

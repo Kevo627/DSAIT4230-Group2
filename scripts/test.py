@@ -13,7 +13,6 @@ from src.conditions.cot import CoTCondition
 from src.conditions.at_cot import ATCoTCondition
 from src.uot import (
     generate_intents,
-    score_cq,
     select_best_cq,
     simulate_user_response,
     generate_final_answer,

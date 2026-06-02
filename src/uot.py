@@ -94,7 +94,6 @@ def score_cq_disambiguation(
     }
 
 
-# ── 3. Select best CQ ────────────────────────────────────────────────────────
 
 def select_best_cq(
     model: VLMWrapper,
@@ -124,7 +123,6 @@ def select_best_cq(
     }
 
 
-# ── 4. Simulate user response (oracle-free, for final answer step) ─────────────
 
 _USER_RESPONSE_PROMPT = """You are a user who asked: "{ambiguous_question}"
 
@@ -159,7 +157,6 @@ def simulate_user_response(
     return parsed.get("response", raw.strip())
 
 
-# ── 5. Final answer generation ────────────────────────────────────────────────
 
 _FINAL_ANSWER_PROMPT = """\
 You are answering a visual question about an image.
