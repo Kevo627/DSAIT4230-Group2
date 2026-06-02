@@ -1,12 +1,15 @@
-huggingface_hub
-datasets
-pandas
-Pillow
-transformers
-torch
-torchvision
-torchaudio
-bert-score
-tqdm
-qwen-vl-utils
-jupyter
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.5.1+cu121
+torchvision==0.20.1+cu121
+torchaudio==2.5.1+cu121
+transformers==4.51.3
+accelerate==1.7.0
+bitsandbytes==0.45.5
+qwen-vl-utils==0.0.14
+huggingface_hub==0.31.4
+datasets==3.6.0
+pandas==2.2.3
+Pillow==11.2.1
+tqdm==4.67.1
+bert-score==0.3.13
+jupyter==1.1.1

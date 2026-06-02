@@ -1,5 +1,5 @@
 """
-VLM wrapper for Qwen2.5-VL on Apple Silicon (MPS).
+VLM wrapper for the baseline multimodal model used by the repo.
 
 Lazy-loads the model on first call so importing this module is free.
 """
@@ -7,16 +7,18 @@ Lazy-loads the model on first call so importing this module is free.
 import os
 import json
 import torch
-from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
+from transformers import (
+    Qwen2_5_VLForConditionalGeneration,
+    AutoProcessor,
+    BitsAndBytesConfig,
+)
 from qwen_vl_utils import process_vision_info
 
 
-DEFAULT_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
+DEFAULT_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
 
 
 def _get_device() -> str:
-    if torch.backends.mps.is_available():
-        return "mps"
     if torch.cuda.is_available():
         return "cuda"
     return "cpu"
@@ -25,8 +27,6 @@ def _get_device() -> str:
 def _get_dtype(device: str):
     if device == "cuda":
         return torch.bfloat16
-    if device == "mps":
-        return torch.float16
     return torch.float32
 
 
@@ -42,10 +42,26 @@ class VLMWrapper:
             return
         dtype = _get_dtype(self.device)
         print(f"Loading {self.model_name} on {self.device} ({dtype}) ...")
+        load_kwargs = {}
+        if self.device == "cuda":
+            load_kwargs.update(
+                quantization_config=BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_use_double_quant=True,
+                ),
+                device_map="auto",
+            )
+        else:
+            load_kwargs.update(torch_dtype=dtype)
+
         self._model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             self.model_name,
-            torch_dtype=dtype,
-        ).to(self.device)
+            **load_kwargs,
+        )
+        if self.device != "cuda":
+            self._model = self._model.to(self.device)
         self._processor = AutoProcessor.from_pretrained(self.model_name)
         self._model.eval()
         print("Model ready.")
