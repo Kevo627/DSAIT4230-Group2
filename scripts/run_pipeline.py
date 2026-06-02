@@ -1,16 +1,4 @@
-"""
-Full pipeline: CQ candidate generation → UoT selection → user response → final answer.
 
-Usage:
-    # Smoke test, 2 examples, standard condition only
-    python scripts/run_pipeline.py --limit 2 --conditions standard
-
-    # Full run (all 4 conditions)
-    python scripts/run_pipeline.py
-
-    # Tune candidate/intent counts
-    python scripts/run_pipeline.py --n_candidates 3 --n_intents 4
-"""
 
 import argparse
 import json
@@ -22,7 +10,7 @@ from tqdm import tqdm
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.dataset import load_intent_examples
-from src.model import VLMWrapper, parse_json_output
+from src.model import VLMWrapper, parse_json_output, DEFAULT_MODEL
 from src.conditions.standard import StandardCondition
 from src.conditions.at import ATCondition
 from src.conditions.cot import CoTCondition
@@ -55,6 +43,10 @@ def generate_candidates(
     seen: set[str] = set()
     candidates: list[str] = []
 
+    def _normalise(s: str) -> str:
+        import re
+        return re.sub(r"[^a-z0-9]", "", s.lower())
+
     for _ in range(n):
         raw = model.generate(
             example["image_path"],
@@ -65,8 +57,9 @@ def generate_candidates(
         )
         parsed = parse_json_output(raw)
         cq = parsed.get("clarification_question", "").strip()
-        if cq and cq not in seen:
-            seen.add(cq)
+        key = _normalise(cq)
+        if cq and key not in seen:
+            seen.add(key)
             candidates.append(cq)
 
     return candidates
@@ -98,7 +91,7 @@ def run_example(
     )
     best_cq = uot_result["best_cq"]
 
-    # 5. Simulate user response to the selected CQ
+    # 5. Simulate oracle-free user response to the selected CQ
     user_response = simulate_user_response(
         model,
         example["image_path"],
@@ -144,6 +137,11 @@ def main():
     parser.add_argument("--output", type=str, default=DEFAULT_OUTPUT)
     parser.add_argument("--model", type=str, default=None)
     parser.add_argument(
+        "--load_in_4bit",
+        action="store_true",
+        help="Load model in 4-bit (needed for 7B on a 15GB GPU)",
+    )
+    parser.add_argument(
         "--n_candidates",
         type=int,
         default=3,
@@ -157,13 +155,34 @@ def main():
     )
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--top_p", type=float, default=0.9)
+    parser.add_argument(
+        "--jsonl_path",
+        type=str,
+        default=None,
+        help="Path to val_annotated.jsonl (default: data/val_annotated.jsonl)",
+    )
+    parser.add_argument(
+        "--images_dir",
+        type=str,
+        default=None,
+        help="Path to images directory (default: data/images/images)",
+    )
     args = parser.parse_args()
 
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
-    examples = load_intent_examples(limit=args.limit)
+
+    load_kwargs = {"limit": args.limit}
+    if args.jsonl_path:
+        load_kwargs["jsonl_path"] = args.jsonl_path
+    if args.images_dir:
+        load_kwargs["images_dir"] = args.images_dir
+    examples = load_intent_examples(**load_kwargs)
     print(f"Loaded {len(examples)} examples")
 
-    model = VLMWrapper(model_name=args.model) if args.model else VLMWrapper()
+    model = VLMWrapper(
+        model_name=args.model or DEFAULT_MODEL,
+        load_in_4bit=args.load_in_4bit,
+    )
     conditions = [ALL_CONDITIONS[name](model) for name in args.conditions]
 
     total = len(examples) * len(conditions)

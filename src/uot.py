@@ -1,22 +1,9 @@
-"""
-Uncertainty-of-Thoughts (UoT) utilities for intent-underspecified VQA.
 
-Pipeline stages implemented here:
-  1. generate_intents        — build intent possibility space from (image, question)
-  2. score_cq                — compute expected information gain for one CQ candidate
-     ├── simulate_response   — VLM-simulate user reply per intent
-     ├── group_responses     — cluster responses into distinguishable groups
-     └── compute_ig          — entropy reduction from grouping
-  3. select_best_cq          — score all candidates, return best
-  4. simulate_user_response  — oracle-free user response to selected CQ
-  5. generate_final_answer   — final answer conditioned on (image, q, cq, response)
-"""
 
 import math
 from src.model import VLMWrapper, parse_json_output
 
 
-# ── 1. Intent-space construction ──────────────────────────────────────────────
 
 _INTENT_PROMPT = """You are analyzing a visual question that is ambiguous due to intent underspecification.
 
@@ -50,7 +37,6 @@ def generate_intents(
     return [str(i) for i in intents[:n]]
 
 
-# ── 2. CQ disambiguation scoring ──────────────────────────────────────────────
 
 _DISAMBIGUATION_PROMPT = """You are evaluating how well a clarification question disambiguates user intent.
 
