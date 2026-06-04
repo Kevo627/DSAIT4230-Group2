@@ -26,20 +26,11 @@ from tqdm import tqdm
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.dataset import load_intent_examples
-from src.model import VLMWrapper
-from src.conditions.standard import StandardCondition
-from src.conditions.at import ATCondition
-from src.conditions.cot import CoTCondition
-from src.conditions.at_cot import ATCoTCondition
 
-ALL_CONDITIONS = {
-    "standard": StandardCondition,
-    "at": ATCondition,
-    "cot": CoTCondition,
-    "at_cot": ATCoTCondition,
-}
+ALL_CONDITION_NAMES = ["standard", "at", "cot", "at_cot"]
 
 DEFAULT_OUTPUT = os.path.join("results", "baselines.jsonl")
+DEFAULT_SAMPLED_OUTPUT = os.path.join("results", "baselines_sampled.jsonl")
 
 
 def load_completed(output_path: str) -> set[tuple]:
@@ -65,8 +56,8 @@ def main():
     parser.add_argument(
         "--conditions",
         nargs="+",
-        choices=list(ALL_CONDITIONS.keys()),
-        default=list(ALL_CONDITIONS.keys()),
+        choices=ALL_CONDITION_NAMES,
+        default=ALL_CONDITION_NAMES,
         help="Which conditions to run (default: all four)",
     )
     parser.add_argument(
@@ -78,8 +69,11 @@ def main():
     parser.add_argument(
         "--output",
         type=str,
-        default=DEFAULT_OUTPUT,
-        help=f"Output JSONL path (default: {DEFAULT_OUTPUT})",
+        default=None,
+        help=(
+            f"Output JSONL path (default: {DEFAULT_OUTPUT}, or "
+            f"{DEFAULT_SAMPLED_OUTPUT} when --sample-candidates > 1)"
+        ),
     )
     parser.add_argument(
         "--resume",
@@ -92,9 +86,54 @@ def main():
         default=None,
         help="HuggingFace model name (default: Qwen/Qwen2.5-VL-3B-Instruct)",
     )
+    parser.add_argument(
+        "--sample-candidates",
+        type=int,
+        default=1,
+        help=(
+            "Generate this many sampled clarification candidates per example. "
+            "When > 1, select the best candidate with BERTScore against "
+            "ClearVQA's clarification_question field."
+        ),
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=0.7,
+        help="Sampling temperature used when --sample-candidates > 1",
+    )
+    parser.add_argument(
+        "--top-p",
+        type=float,
+        default=0.95,
+        help="Nucleus sampling top-p used when --sample-candidates > 1",
+    )
     args = parser.parse_args()
 
+    if args.sample_candidates < 1:
+        raise ValueError("--sample-candidates must be at least 1")
+
+    if args.output is None:
+        args.output = (
+            DEFAULT_SAMPLED_OUTPUT
+            if args.sample_candidates > 1
+            else DEFAULT_OUTPUT
+        )
+
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
+
+    from src.model import VLMWrapper
+    from src.conditions.standard import StandardCondition
+    from src.conditions.at import ATCondition
+    from src.conditions.cot import CoTCondition
+    from src.conditions.at_cot import ATCoTCondition
+
+    all_conditions = {
+        "standard": StandardCondition,
+        "at": ATCondition,
+        "cot": CoTCondition,
+        "at_cot": ATCoTCondition,
+    }
 
     examples = load_intent_examples(limit=args.limit)
     print(f"Loaded {len(examples)} examples")
@@ -102,9 +141,15 @@ def main():
     completed = load_completed(args.output) if args.resume else set()
     if completed:
         print(f"Resuming — {len(completed)} (id, condition) pairs already done")
+    if args.sample_candidates > 1:
+        print(
+            "Sampling mode: generating "
+            f"{args.sample_candidates} candidates per example and selecting "
+            "with BERTScore against ClearVQA clarification_question"
+        )
 
     model = VLMWrapper(model_name=args.model) if args.model else VLMWrapper()
-    conditions = [ALL_CONDITIONS[name](model) for name in args.conditions]
+    conditions = [all_conditions[name](model) for name in args.conditions]
 
     total = len(examples) * len(conditions)
     skipped = sum(
@@ -120,7 +165,16 @@ def main():
                     if (example["id"], condition.name) in completed:
                         continue
                     try:
-                        result = condition.run(example)
+                        if args.sample_candidates > 1:
+                            result = condition.run_sampled(
+                                example,
+                                num_candidates=args.sample_candidates,
+                                temperature=args.temperature,
+                                top_p=args.top_p,
+                            )
+                            result["selection_strategy"] = "bertscore_gold_clarification"
+                        else:
+                            result = condition.run(example)
                     except Exception as e:
                         result = {
                             "id": example["id"],
