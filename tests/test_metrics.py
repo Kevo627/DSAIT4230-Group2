@@ -9,7 +9,9 @@ sys.modules.setdefault("bert_score", bert_score_stub)
 
 from src.metrics.metrics import (
     VQAScorer,
+    best_bert_score_candidate,
     bert_score_comp,
+    bert_score_candidates,
     distribution_comp,
     entropy_reduc,
     improvement_over_baseline,
@@ -119,4 +121,66 @@ def test_bert_score_comp_averages_score_outputs(monkeypatch):
         "precision": 0.8,
         "recall": 0.7,
         "f1": 0.75,
+    }
+
+
+def test_bert_score_candidates_scores_each_candidate(monkeypatch):
+    def fake_score(generated_questions, reference_questions, lang, verbose):
+        assert generated_questions == [
+            "what color is the car?",
+            "what do you want to know about the car?",
+        ]
+        assert reference_questions == [
+            "what color is the vehicle?",
+            "what color is the vehicle?",
+        ]
+        return [0.7, 0.6], [0.8, 0.5], [0.75, 0.55]
+
+    monkeypatch.setattr(metrics_module, "score", fake_score)
+
+    assert bert_score_candidates(
+        [
+            "what color is the car?",
+            "what do you want to know about the car?",
+        ],
+        "what color is the vehicle?",
+    ) == [
+        {
+            "candidate": "what color is the car?",
+            "precision": 0.7,
+            "recall": 0.8,
+            "f1": 0.75,
+        },
+        {
+            "candidate": "what do you want to know about the car?",
+            "precision": 0.6,
+            "recall": 0.5,
+            "f1": 0.55,
+        },
+    ]
+
+
+def test_best_bert_score_candidate_selects_highest_metric(monkeypatch):
+    def fake_score(generated_questions, reference_questions, lang, verbose):
+        return [0.9, 0.6], [0.4, 0.8], [0.55, 0.7]
+
+    monkeypatch.setattr(metrics_module, "score", fake_score)
+
+    result = best_bert_score_candidate(
+        ["specific but low recall", "better overall"],
+        "reference clarification",
+    )
+
+    assert result["best_candidate"] == "better overall"
+    assert result["best_index"] == 1
+    assert result["best_score"] == 0.7
+    assert len(result["scores"]) == 2
+
+
+def test_best_bert_score_candidate_handles_empty_candidates():
+    assert best_bert_score_candidate([], "reference clarification") == {
+        "best_candidate": "",
+        "best_index": None,
+        "best_score": 0.0,
+        "scores": [],
     }
