@@ -23,6 +23,10 @@ pip install -r requirements.txt
 ### 3. Verify the dataset loaded correctly
 python src/dataset.py
 
+### 4. For running the metric tests, run the following command to install bert_score. 
+
+``pip install bert_score``
+
 ## Repo structure
 
 ├── scripts/

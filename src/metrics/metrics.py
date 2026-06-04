@@ -181,7 +181,7 @@ def ground_truth_probability(samples: list[str], ground_truth: str, scorer) -> f
 #### Majority answer option
 
 def majority_answer(answers: list[str], scorer):
-    normalized = [scorer.normalized(answer) for answer in answers]
+    normalized = [scorer.normalize(answer) for answer in answers]
     
     return Counter(normalized).most_common(1)[0][0]
 
@@ -205,6 +205,8 @@ def valid_answer_prob(samples: list[str], answers: list[str], scorer) -> float:
     valid_answers = {scorer.normalize(ans) for ans in answers}
 
     normalized_samples = [scorer.normalize(sample) for sample in samples]
+    if len(normalized_samples) == 0:
+        return 0.0
 
     num_valid = sum(sample in valid_answers for sample in normalized_samples)
 
