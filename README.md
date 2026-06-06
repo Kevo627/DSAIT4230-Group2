@@ -1,50 +1,77 @@
 # DSAIT4230-Group2
 
-## Setup
+# DSAIT4230-Group2
 
-### 0. Venv setup
-python -m venv .venv
-source .venv/bin/activate
+## Setup (Kaggle)
 
-pip install -r requirements.txt
+**Cell 1 — clone and install**
+```python
+%cd /kaggle/working
+!rm -rf DSAIT4230-Group2
+!git clone https://github.com/Kevo627/DSAIT4230-Group2.git
+%cd DSAIT4230-Group2
 
-python -c "import torch; print(torch.backends.mps.is_available())"
+!pip install transformers torch torchvision torchaudio qwen-vl-utils \
+    bitsandbytes bert-score tqdm huggingface_hub pandas Pillow datasets -q
 
-python scripts/run_baselines.py --limit 2 --conditions standard
-### 1. Clone and install dependencies
-pip install -r requirements.txt
+import os, transformers
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+transformers.logging.set_verbosity_error()
+```
 
-### 2. Download dataset (images ~3.2GB, run once) - first 3 steps optional, needed only for faster download
-- huggingface.co → log in (or create a free account)
-- Settings → Access Tokens → New token → read permissions → copy it
-- Run: `hf auth login` and paste the token in CLI
-- python scripts/download_data.py
+**Cell 2 — HF token**
+```python
+from kaggle_secrets import UserSecretsClient
+secrets = UserSecretsClient()
+os.environ["HF_TOKEN"] = secrets.get_secret("hf-token")
+```
 
-### 3. Verify the dataset loaded correctly
-python src/dataset.py
+**Cell 3 — download data (images ~3.2GB, run once)**
+```python
+!python scripts/download_data.py
+```
+
+**Cell 4 — run baselines**
+```python
+!python scripts/run_baselines.py \
+    --model Qwen/Qwen2.5-VL-7B-Instruct \
+    --load_in_4bit \
+    --n_samples 5 \
+    --output results/baselines.jsonl \
+    --resume
+```
+
+**Cell 5 — simulate user responses **
+```python
+!python scripts/simulate_responses.py \
+    --load_in_4bit \
+    --resume
+```
 
 ## Repo structure
 
+DSAIT4230-Group2/
 ├── scripts/
-│   └── download_data.py        # One-time dataset download
+│   ├── download_data.py
+│   ├── run_baselines.py
+│   └── simulate_responses.py
 ├── src/
-│   ├── dataset.py              # Dataset loader and filter
-│   ├── conditions/             # One file per prompting condition
-│   │   ├── standard.py
-│   │   ├── at.py
-│   │   ├── cot.py
-│   │   ├── at_cot.py
-│   │   └── subtype_guided.py
-│   └── evaluate/               # Metrics
-├── data/                       # gitignored — created by download_data.py
+│   ├── __init__.py
+│   ├── dataset.py
+│   ├── model.py
+│   ├── user_simulator.py
+│   └── conditions/
+│       ├── __init__.py
+│       ├── base.py
+│       ├── standard.py
+│       ├── cot.py
+│       ├── at.py
+│       └── at_cot.py
+├── data/
 │   ├── val_annotated.jsonl
 │   └── images/
-├── results/                    # gitignored — experiment outputs
+│       └── images/
+├── results/
 ├── requirements.txt
 └── README.md
-
-
-NOTE: When downloading, training images are downloaded too, which took up unnecessary space. I deleted those using this on MacOS: 
-find data/images/images -name "train_*.jpg" | wc -l
-find data/images/images -name "train_*.jpg" -delete
 
