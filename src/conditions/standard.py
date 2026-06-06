@@ -2,8 +2,7 @@ from src.conditions.base import BaseCondition
 
 PROMPT = """\
 Given the image and the user's question below, generate ONE clarification question \
-that would help answer the user more accurately. Target the most important missing \
-information or ambiguity.
+that you think is most appropriate to gain a better understanding of the user's intent.
 
 User question: {ambiguous_question}
 

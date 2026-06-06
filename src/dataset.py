@@ -7,11 +7,10 @@ from typing import Optional
 JSONL_PATH = os.path.join("data", "val_annotated.jsonl")
 IMAGES_DIR = os.path.join("data", "images", "images")
 
+REFERENTIAL_CATEGORY = "referential"
 
-INTENT_CATEGORY = "intent"
 
-
-def load_intent_examples(
+def load_referential_examples(
     jsonl_path: str = JSONL_PATH,
     images_dir: str = IMAGES_DIR,
     limit: Optional[int] = None,
@@ -24,19 +23,19 @@ def load_intent_examples(
             "Make sure you loaded val_annotated.jsonl, not the train split."
         )
 
-    intent_df = df[df["ambiguity_category"] == INTENT_CATEGORY].reset_index(drop=True)
+    ref_df = df[df["ambiguity_category"] == REFERENTIAL_CATEGORY].reset_index(drop=True)
 
-    if len(intent_df) == 0:
+    if len(ref_df) == 0:
         raise ValueError(
-            f"No examples found for category '{INTENT_CATEGORY}'. "
+            f"No examples found for category '{REFERENTIAL_CATEGORY}'. "
             f"Available categories: {df['ambiguity_category'].unique().tolist()}"
         )
 
     if limit is not None:
-        intent_df = intent_df.head(limit)
+        ref_df = ref_df.head(limit)
 
     examples = []
-    for _, row in intent_df.iterrows():
+    for _, row in ref_df.iterrows():
         image_path = os.path.join(images_dir, row["image"])
         examples.append({
             "id": str(row["question_id"]),
@@ -67,8 +66,8 @@ def inspect_categories(jsonl_path: str = JSONL_PATH):
 
 if __name__ == "__main__":
     inspect_categories()
-    print("\nLoading intent underspecification examples ...")
-    examples = load_intent_examples(limit=3)
+    print("\nLoading referential ambiguity examples ...")
+    examples = load_referential_examples(limit=3)
     print(f"Loaded {len(examples)} examples (showing first 3)\n")
     for ex in examples:
         print(f"ID                   : {ex['id']}")
