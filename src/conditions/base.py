@@ -69,6 +69,7 @@ class BaseCondition(ABC):
         return {
             "id": example["id"],
             "condition": self.name,
+            "image_path": example["image_path"],   # add this line
             "ambiguous_question": example["ambiguous_question"],
             "candidate_clarifications": candidates,
             "gold_clarification": example["gold_clarification"],

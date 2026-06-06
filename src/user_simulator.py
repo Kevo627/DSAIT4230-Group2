@@ -1,22 +1,3 @@
-"""
-User response simulator for referential ambiguity CQs.
-
-Given a selected clarification question and the gold intended question,
-this module simulates how the user would answer the CQ — using the VLM
-to ground the response in both the image and the gold intent.
-
-Called after the scoring step has selected the best CQ per condition.
-
-Input  (per example):
-  - image_path            : path to the image
-  - ambiguous_question    : the original ambiguous user question
-  - gold_intended_question: the ground-truth unambiguous question (what the user really meant)
-  - selected_cq           : the clarification question chosen by the scoring step
-
-Output:
-  - user_response         : simulated answer string (1-2 sentences, natural language)
-"""
-
 from src.model import VLMWrapper, parse_json_output
 
 SIMULATE_PROMPT = """\
@@ -49,16 +30,6 @@ class UserSimulator:
         gold_intended_question: str,
         clarification_question: str,
     ) -> dict:
-        """
-        Simulate the user's answer to a clarification question.
-
-        Returns a dict:
-          {
-            "user_response"  : str   — the simulated answer
-            "raw_output"     : str   — raw model output
-            "_parse_failed"  : bool
-          }
-        """
         prompt = SIMULATE_PROMPT.format(
             ambiguous_question=ambiguous_question,
             gold_intended_question=gold_intended_question,
