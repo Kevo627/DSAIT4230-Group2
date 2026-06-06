@@ -7,7 +7,7 @@ from typing import Optional
 JSONL_PATH = os.path.join("data", "val_annotated.jsonl")
 IMAGES_DIR = os.path.join("data", "images", "images")
 
-REFERENTIAL_CATEGORY = "referential"
+REFERENTIAL_CATEGORY = "refer"
 
 
 def load_referential_examples(
