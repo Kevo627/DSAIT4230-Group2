@@ -1,17 +1,16 @@
 from src.model import VLMWrapper, parse_json_output
 
 SIMULATE_PROMPT = """\
-You are simulating the response of a user who asked an ambiguous question while \
-looking at this image.
+You are simulating a user who asked this question while looking at the image: "{ambiguous_question}"
 
-The user's original (ambiguous) question was: "{ambiguous_question}"
-The user's actual intent was:               "{gold_intended_question}"
+A clarification question was posed to you: "{clarification_question}"
 
-A clarification question was posed to the user: "{clarification_question}"
+Answer only what the clarification question asks. Be specific about which object or region \
+in the image you mean. Keep it to 1-2 natural sentences.
 
-Answer the clarification question as this user would — in 1–2 short, natural sentences. \
-Be specific about which object or region in the image you mean, consistent with the \
-user's actual intent. Do not reveal the intended question directly.
+Note: the user's actual intended referent is: "{gold_intended_question}" — use this only \
+to identify which object in the image to refer to, not to add information beyond what the \
+clarification question asks for.
 
 Return ONLY a JSON object, no extra text:
 {{

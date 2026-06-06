@@ -92,14 +92,17 @@ class VLMWrapper:
 
 def parse_json_output(text: str) -> dict:
     try:
-        return json.loads(text)
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            return parsed
     except json.JSONDecodeError:
         pass
     start = text.find("{")
     if start != -1:
         try:
             obj, _ = json.JSONDecoder().raw_decode(text, start)
-            return obj
+            if isinstance(obj, dict):
+                return obj
         except json.JSONDecodeError:
             pass
     return {"clarification_question": text.strip(), "_parse_failed": True}
