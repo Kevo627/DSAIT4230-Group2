@@ -5,8 +5,16 @@ You are a user who asked this question while looking at the image: "{ambiguous_q
 
 A clarification question was posed to you: "{clarification_question}"
 
-Answer the clarification question naturally and concisely, in 1 short sentence, \
-based on what you see in the image.
+Select one of the options in the clarification question or point to which object you mean. \
+Your response must identify ONLY which object or entity you are referring to. \
+Do NOT answer the underlying question — only identify which object or option you mean.
+Keep it to 1 short sentence.
+
+Template examples of correct responses:
+- CQ: "Are you referring to <object A> or <object B>?" → "The <object A>, yes."
+- CQ: "Do you mean <object A> or <object B>?" → "The <object B> on the left."
+- CQ: "Are you asking about <option A> or <option B>?" → "The <option A>, the one near the <landmark>."
+- CQ: "Do you mean <object>?" → "Yes, exactly that one."
 
 Return ONLY a JSON object, no extra text:
 {{
