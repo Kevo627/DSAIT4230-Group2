@@ -8,6 +8,9 @@ The question contains referential ambiguity: the referring expression does not u
 specify the intended referent — it is unclear which specific object, region, or entity \
 in the image the user means.
 
+The clarification question must ask the user to identify WHICH object or entity \
+they are referring to — not ask for the answer to the original question itself.
+
 Consider this ambiguity type when generating the clarification question.
 
 User question: {ambiguous_question}

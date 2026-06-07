@@ -1,12 +1,7 @@
-"""
-Base class for all clarification conditions.
-Each condition implements build_prompt() and parses model output into a result dict.
-"""
-
 from abc import ABC, abstractmethod
 from src.model import VLMWrapper, parse_json_output
 
-N_SAMPLES = 5          # candidate CQs to generate per condition
+N_SAMPLES = 5          
 SAMPLE_TEMPERATURE = 0.8
 SAMPLE_TOP_P = 0.95
 
@@ -27,7 +22,6 @@ class BaseCondition(ABC):
         prompt: str,
         do_sample: bool = False,
     ) -> dict:
-        """Single model call → parsed dict with at least 'clarification_question'."""
         raw = self.model.generate(
             image_path,
             prompt,
@@ -44,17 +38,6 @@ class BaseCondition(ABC):
         }
 
     def run(self, example: dict, n_samples: int = N_SAMPLES) -> dict:
-        """
-        Generate `n_samples` candidate CQs for one example.
-
-        The first sample is drawn greedily (do_sample=False) for reproducibility;
-        the remaining n-1 are sampled for diversity.
-
-        Returns a result dict with:
-          - candidate_clarifications: list of n_samples dicts, each with
-              'clarification_question', 'reasoning', 'raw_output', '_parse_failed'
-          - plus metadata fields (id, condition, gold_*, …)
-        """
         prompt = self.build_prompt(example["ambiguous_question"])
 
         candidates = []
