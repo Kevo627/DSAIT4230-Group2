@@ -1,3 +1,5 @@
+from src.model import VLMWrapper, parse_json_output
+
 SIMULATE_PROMPT = """\
 You are a user who asked this question while looking at the image: "{ambiguous_question}"
 
