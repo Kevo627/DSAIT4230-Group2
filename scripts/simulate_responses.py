@@ -67,11 +67,11 @@ def main():
         for row in tqdm(to_run, desc="Simulating user responses"):
             try:
                 sim = simulator.simulate(
-                image_path=row["image_path"],
-                ambiguous_question=row["ambiguous_question"],
-                gold_intended_question=row["gold_intended_question"], 
-                clarification_question=row["generated_clarification"],
-            )
+                    image_path=row["image_path"],
+                    ambiguous_question=row["ambiguous_question"],
+                    gold_intended_question=row["gold_intended_question"],
+                    clarification_question=row["generated_clarification"],
+                )
                 out_row = {
                     **row,
                     "user_response": sim["user_response"],

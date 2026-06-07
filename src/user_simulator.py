@@ -28,12 +28,19 @@ class UserSimulator:
     def __init__(self, model: VLMWrapper):
         self.model = model
 
-    def simulate(self, image_path, ambiguous_question, clarification_question):
+    def simulate(
+        self,
+        image_path: str,
+        ambiguous_question: str,
+        gold_intended_question: str,
+        clarification_question: str,
+    ) -> dict:
         prompt = SIMULATE_PROMPT.format(
             ambiguous_question=ambiguous_question,
+            gold_intended_question=gold_intended_question,
             clarification_question=clarification_question,
         )
-        for _ in range(3):  # retry up to 3 times on parse failure
+        for _ in range(3):
             raw = self.model.generate(image_path, prompt, do_sample=False)
             parsed = parse_json_output(raw)
             if not parsed.get("_parse_failed") and "user_response" in parsed:
