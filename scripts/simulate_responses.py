@@ -69,6 +69,7 @@ def main():
                 sim = simulator.simulate(
                 image_path=row["image_path"],
                 ambiguous_question=row["ambiguous_question"],
+                gold_intended_question=row["gold_intended_question"], 
                 clarification_question=row["generated_clarification"],
             )
                 out_row = {
