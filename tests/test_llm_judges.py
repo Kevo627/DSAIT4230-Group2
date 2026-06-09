@@ -25,25 +25,28 @@ bert_score_stub = types.ModuleType("bert_score")
 bert_score_stub.score = lambda *a, **kw: None
 sys.modules.setdefault("bert_score", bert_score_stub)
 
+import json
+
 from src.metrics.llm_judge import (
-    llm_judge_quality,
-    _extract_score,
+    llm_judge_candidates,
     _extract_json_field,
+    _parse_score,
 )
 
 
-def test_extract_score_finds_valid_integer():
-    assert _extract_score("The score is 4.") == 4
-    assert _extract_score("I give it a 2 out of 5") == 2
+def test_parse_score_valid():
+    assert _parse_score(4) == 4
+    assert _parse_score("3") == 3
 
 
-def test_extract_score_ignores_out_of_range():
-    assert _extract_score("score: 9") is None
-    assert _extract_score("no digits here") is None
+def test_parse_score_out_of_range():
+    assert _parse_score(0) is None
+    assert _parse_score(6) is None
+    assert _parse_score("bad") is None
 
 
 def test_extract_json_field_happy_path():
-    assert _extract_json_field('Some text {"faithfulness": 4} trailing', "faithfulness") == 4
+    assert _extract_json_field('{"faithfulness": 4}', "faithfulness") == 4
 
 
 def test_extract_json_field_missing_key():
@@ -54,50 +57,48 @@ def test_extract_json_field_malformed_json():
     assert _extract_json_field("not json at all", "x") is None
 
 
-def test_judge_quality_returns_all_dimensions():
-    model = FakeVLMWrapper(responses=[
-        '{"faithfulness": 5, "reasonableness": 4, "clarity": 3}',
-    ])
-    result = llm_judge_quality(
-        clarification_question="Which sign do you mean?",
+def test_judge_candidates_scores_all():
+    response = json.dumps({"candidates": [
+        {"faithfulness": 4, "reasonableness": 3, "clarity": 5},
+        {"faithfulness": 2, "reasonableness": 4, "clarity": 3},
+    ]})
+    model = FakeVLMWrapper(responses=[response])
+    result = llm_judge_candidates(
+        candidates=["cq_a", "cq_b"],
         ambiguous_question="What is on the sign?",
         image_path="img.jpg",
         model=model,
     )
-    assert result["faithfulness"] == 5
-    assert result["reasonableness"] == 4
-    assert result["clarity"] == 3
-    assert abs(result["mean"] - 4.0) < 1e-6
+    assert len(result["candidates"]) == 2
+    assert result["candidates"][0]["faithfulness"] == 4
+    assert result["candidates"][1]["reasonableness"] == 4
+    assert result["mean_clarity"] == 4.0
 
 
-def test_judge_quality_single_call():
-    model = FakeVLMWrapper(responses=[
-        '{"faithfulness": 5, "reasonableness": 4, "clarity": 3}',
-    ])
-    llm_judge_quality("CQ", "Q", "img.jpg", model)
+def test_judge_candidates_single_call():
+    response = json.dumps({"candidates": [{"faithfulness": 3, "reasonableness": 3, "clarity": 3}]})
+    model = FakeVLMWrapper(responses=[response])
+    llm_judge_candidates(["cq"], "Q?", "img.jpg", model)
     assert len(model.calls) == 1
 
 
-def test_judge_quality_handles_partial_parse_failure():
-    model = FakeVLMWrapper(responses=[
-        '{"faithfulness": 4, "reasonableness": 2, "clarity": 9}',
-    ])
-    result = llm_judge_quality("CQ", "Q", "img.jpg", model)
-    assert result["faithfulness"] == 4
-    assert result["reasonableness"] == 2
-    assert result["clarity"] is None
-    assert abs(result["mean"] - 3.0) < 1e-6
+def test_judge_candidates_empty_input():
+    model = FakeVLMWrapper()
+    result = llm_judge_candidates([], "Q?", "img.jpg", model)
+    assert result["candidates"] == []
+    assert result["mean_faithfulness"] is None
+    assert len(model.calls) == 0
 
 
-def test_judge_quality_all_fail_returns_none_mean():
-    model = FakeVLMWrapper(responses=["nope"])
-    result = llm_judge_quality("CQ", "Q", "img.jpg", model)
-    assert result["mean"] is None
+def test_judge_candidates_bad_json_graceful():
+    model = FakeVLMWrapper(responses=["not json"])
+    result = llm_judge_candidates(["cq_a", "cq_b"], "Q?", "img.jpg", model)
+    assert len(result["candidates"]) == 2
+    assert all(r["faithfulness"] is None for r in result["candidates"])
 
 
-def test_judge_quality_passes_image_path():
-    model = FakeVLMWrapper(responses=[
-        '{"faithfulness": 3, "reasonableness": 3, "clarity": 3}',
-    ])
-    llm_judge_quality("CQ", "Q", "data/images/special.jpg", model)
-    assert model.calls[0]["image_path"] == "data/images/special.jpg"
+def test_judge_candidates_passes_image_path():
+    response = json.dumps({"candidates": [{"faithfulness": 3, "reasonableness": 3, "clarity": 3}]})
+    model = FakeVLMWrapper(responses=[response])
+    llm_judge_candidates(["cq"], "Q?", "data/images/test.jpg", model)
+    assert model.calls[0]["image_path"] == "data/images/test.jpg"
