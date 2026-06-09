@@ -84,7 +84,7 @@ def main():
         "--model",
         type=str,
         default=None,
-        help="HuggingFace model name (default: Qwen/Qwen2.5-VL-3B-Instruct)",
+        help="HuggingFace model name or local model path (default: Qwen/Qwen2.5-VL-7B-Instruct)",
     )
     parser.add_argument(
         "--sample-candidates",
