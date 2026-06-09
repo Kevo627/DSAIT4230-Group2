@@ -14,7 +14,7 @@ from src.metrics.metrics import (
     bert_score_candidates,
     distribution_comp,
     entropy_reduc,
-    improvement_over_baseline,
+    improvement_over_reference,
     majority_answer_change,
     mean_convo_length,
     valid_answer_prob,
@@ -94,11 +94,11 @@ def test_majority_answer_change():
 def test_simple_summary_metrics():
     assert mean_convo_length([]) == 0.0
     assert mean_convo_length([1, 2, 3]) == 2.0
-    assert improvement_over_baseline(0.75, 0.5) == {
+    assert improvement_over_reference(0.75, 0.5) == {
         "diff": 0.25,
         "diff_percent": 50.0,
     }
-    assert improvement_over_baseline(0.2, 0.0) == {
+    assert improvement_over_reference(0.2, 0.0) == {
         "diff": 0.2,
         "diff_percent": None,
     }

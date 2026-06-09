@@ -33,7 +33,6 @@ class BaseCondition(ABC):
         parsed = parse_json_output(raw)
         return {
             "clarification_question": parsed.get("clarification_question", ""),
-            "reasoning": parsed.get("reasoning", None),
             "raw_output": raw,
             "_parse_failed": parsed.get("_parse_failed", False),
         }
@@ -57,7 +56,7 @@ class BaseCondition(ABC):
             "ambiguous_question": example["ambiguous_question"],
             "candidate_clarifications": candidates,
             "gold_clarification": example["gold_clarification"],
-            "gold_intended_question": example["gold_intended_question"],
+            "gold_referential_question": example["gold_referential_question"],
             "gold_answer": example["gold_answer"],
             "answers": example.get("answers", []),
         }
@@ -85,7 +84,6 @@ class BaseCondition(ABC):
             parsed = parse_json_output(raw_output)
             parsed_outputs.append({
                 "generated_clarification": parsed.get("clarification_question", ""),
-                "reasoning": parsed.get("reasoning", None),
                 "raw_output": raw_output,
                 "_parse_failed": parsed.get("_parse_failed", False),
             })
@@ -106,7 +104,7 @@ class BaseCondition(ABC):
             "candidate_scores": selection["scores"],
             "generated_candidates": parsed_outputs,
             "gold_clarification": example["gold_clarification"],
-            "gold_intended_question": example["gold_intended_question"],
+            "gold_referential_question": example["gold_referential_question"],
             "gold_answer": example["gold_answer"],
             "answers": example.get("answers", []),
         }

@@ -41,7 +41,7 @@ def test_run_sampled_selects_best_candidate_with_scorer():
         "image_path": "image.jpg",
         "ambiguous_question": "what is it?",
         "gold_clarification": "what color is the object?",
-        "gold_intended_question": "what color is the object?",
+        "gold_referential_question": "what color is the object?",
         "gold_answer": "red",
         "answers": ["red"],
     }

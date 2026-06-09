@@ -173,15 +173,15 @@ def best_bert_score_candidate(
         "scores": scored_candidates,
     }
 
-### Improvement over baseline
+### Improvement over reference
 
-def improvement_over_baseline(strategy_score: float, baseline_score: float) -> dict:
-    diff = strategy_score - baseline_score
+def improvement_over_reference(strategy_score: float, reference_score: float) -> dict:
+    diff = strategy_score - reference_score
     
-    if baseline_score == 0:
+    if reference_score == 0:
         diff_percent = None
     else:
-        diff_percent = (diff / baseline_score) * 100
+        diff_percent = (diff / reference_score) * 100
 
     return {
         "diff": diff,

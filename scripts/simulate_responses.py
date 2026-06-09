@@ -7,10 +7,8 @@ from tqdm import tqdm
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.model import VLMWrapper
-from src.user_simulator import UserSimulator
-DEFAULT_INPUT = os.path.join("results", "baselines_scored.jsonl")
-DEFAULT_OUTPUT = os.path.join("results", "with_user_responses.jsonl")
+DEFAULT_INPUT = os.path.join("results", "selected_clarifications.jsonl")
+DEFAULT_OUTPUT = os.path.join("results", "user_responses.jsonl")
 
 
 def load_completed(output_path: str) -> set[tuple]:
@@ -36,6 +34,7 @@ def main():
     parser.add_argument("--output", type=str, default=DEFAULT_OUTPUT)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--model", type=str, default=None)
+    parser.add_argument("--runtime", choices=["local", "kaggle"], default="local")
     parser.add_argument("--load_in_4bit", action="store_true")
     args = parser.parse_args()
 
@@ -56,8 +55,12 @@ def main():
     if completed:
         print(f"Resuming — {len(completed)} (id, condition) pairs already done")
 
-    model = VLMWrapper(model_name=args.model, load_in_4bit=args.load_in_4bit) if args.model \
-        else VLMWrapper(load_in_4bit=args.load_in_4bit)
+    from src.model import VLMWrapper
+    from src.user_simulator import UserSimulator
+
+    load_in_4bit = args.load_in_4bit or args.runtime == "kaggle"
+    model = VLMWrapper(model_name=args.model, load_in_4bit=load_in_4bit) if args.model \
+        else VLMWrapper(load_in_4bit=load_in_4bit)
     simulator = UserSimulator(model)
 
     to_run = [r for r in valid_rows if (r["id"], r["condition"]) not in completed]
@@ -69,7 +72,7 @@ def main():
                 sim = simulator.simulate(
                     image_path=row["image_path"],
                     ambiguous_question=row["ambiguous_question"],
-                    gold_intended_question=row["gold_intended_question"],
+                    gold_referential_question=row["gold_referential_question"],
                     clarification_question=row["generated_clarification"],
                 )
                 out_row = {
