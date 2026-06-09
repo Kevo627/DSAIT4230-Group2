@@ -84,7 +84,7 @@ def main():
         "--model",
         type=str,
         default=None,
-        help="HuggingFace model name (default: Qwen/Qwen2.5-VL-3B-Instruct)",
+        help="HuggingFace model name or local path (default: Qwen/Qwen2.5-VL-3B-Instruct)",
     )
     parser.add_argument(
         "--sample-candidates",
@@ -107,6 +107,11 @@ def main():
         type=float,
         default=0.95,
         help="Nucleus sampling top-p used when --sample-candidates > 1",
+    )
+    parser.add_argument(
+        "--load_in_4bit",
+        action="store_true",
+        help="Load model in 4-bit quantization to reduce memory usage",
     )
     args = parser.parse_args()
 
@@ -148,7 +153,8 @@ def main():
             "with BERTScore against ClearVQA clarification_question"
         )
 
-    model = VLMWrapper(model_name=args.model) if args.model else VLMWrapper()
+    model = VLMWrapper(model_name=args.model, load_in_4bit=args.load_in_4bit) if args.model \
+        else VLMWrapper(load_in_4bit=args.load_in_4bit)
     conditions = [all_conditions[name](model) for name in args.conditions]
 
     total = len(examples) * len(conditions)
