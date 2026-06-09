@@ -28,19 +28,19 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.dataset import load_intent_examples
 from src.model import VLMWrapper
 from src.conditions.standard import StandardCondition
-from src.conditions.at import ATCondition
-from src.conditions.cot import CoTCondition
 from src.conditions.at_cot import ATCoTCondition
-from src.conditions.at_subtype import ATSubtypeCondition
 from src.conditions.answer_impact import AnswerImpactCondition
+# from src.conditions.at import ATCondition
+# from src.conditions.cot import CoTCondition
+# from src.conditions.at_subtype import ATSubtypeCondition
 
 ALL_CONDITIONS = {
     "standard": StandardCondition,
-    "at": ATCondition,
-    "cot": CoTCondition,
     "at_cot": ATCoTCondition,
-    "at_subtype": ATSubtypeCondition,
     "answer_impact": AnswerImpactCondition,
+    # "at": ATCondition,
+    # "cot": CoTCondition,
+    # "at_subtype": ATSubtypeCondition,
 }
 
 DEFAULT_OUTPUT = os.path.join("results", "baselines.jsonl")
