@@ -1,25 +1,23 @@
 import os
 import json
-import torch
-from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
-from qwen_vl_utils import process_vision_info
 
-DEFAULT_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
+
+DEFAULT_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
 
 
 def _get_device() -> str:
-    if torch.backends.mps.is_available():
-        return "mps"
+    import torch
+
     if torch.cuda.is_available():
         return "cuda"
     return "cpu"
 
 
 def _get_dtype(device: str):
+    import torch
+
     if device == "cuda":
         return torch.bfloat16
-    if device == "mps":
-        return torch.float16
     return torch.float32
 
 
@@ -34,8 +32,16 @@ class VLMWrapper:
     def load(self):
         if self._model is not None:
             return
+
+        import torch
+        from transformers import (
+            Qwen2_5_VLForConditionalGeneration,
+            AutoProcessor,
+            BitsAndBytesConfig,
+        )
+
+        dtype = _get_dtype(self.device)
         if self.load_in_4bit and self.device == "cuda":
-            from transformers import BitsAndBytesConfig
             print(f"Loading {self.model_name} in 4-bit on {self.device} ...")
             bnb_config = BitsAndBytesConfig(
                 load_in_4bit=True,
@@ -49,24 +55,33 @@ class VLMWrapper:
                 device_map="auto",
             )
         else:
-            dtype = _get_dtype(self.device)
             print(f"Loading {self.model_name} on {self.device} ({dtype}) ...")
             self._model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
                 self.model_name,
                 torch_dtype=dtype,
             ).to(self.device)
+
         self._processor = AutoProcessor.from_pretrained(self.model_name)
         self._model.eval()
         print("Model ready.")
 
     @property
     def _input_device(self) -> str:
-        # with device_map="auto" (4-bit), inputs must go to cuda explicitly
         return "cuda" if self.device == "cuda" else self.device
 
-    def generate(self, image_path: str, prompt: str, max_new_tokens: int = 512,
-                 do_sample: bool = False, temperature: float = 0.8, top_p: float = 0.95) -> str:
+    def generate(
+        self,
+        image_path: str,
+        prompt: str,
+        max_new_tokens: int = 512,
+        do_sample: bool = False,
+        temperature: float = 0.8,
+        top_p: float = 0.95,
+    ) -> str:
         self.load()
+        import torch
+        from qwen_vl_utils import process_vision_info
+
         messages = [{"role": "user", "content": [
             {"type": "image", "image": f"file://{os.path.abspath(image_path)}"},
             {"type": "text", "text": prompt},
@@ -105,4 +120,5 @@ def parse_json_output(text: str) -> dict:
                 return obj
         except json.JSONDecodeError:
             pass
+
     return {"clarification_question": text.strip(), "_parse_failed": True}

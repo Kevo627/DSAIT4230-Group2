@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from src.model import VLMWrapper, parse_json_output
+from src.metrics.metrics import best_bert_score_candidate
 
 N_SAMPLES = 5          
 SAMPLE_TEMPERATURE = 0.8
@@ -32,7 +33,6 @@ class BaseCondition(ABC):
         parsed = parse_json_output(raw)
         return {
             "clarification_question": parsed.get("clarification_question", ""),
-            "reasoning": parsed.get("reasoning", None),
             "raw_output": raw,
             "_parse_failed": parsed.get("_parse_failed", False),
         }
@@ -56,7 +56,55 @@ class BaseCondition(ABC):
             "ambiguous_question": example["ambiguous_question"],
             "candidate_clarifications": candidates,
             "gold_clarification": example["gold_clarification"],
-            "gold_intended_question": example["gold_intended_question"],
+            "gold_referential_question": example["gold_referential_question"],
+            "gold_answer": example["gold_answer"],
+            "answers": example.get("answers", []),
+        }
+
+    def run_sampled(
+        self,
+        example: dict,
+        num_candidates: int = 5,
+        temperature: float = 0.7,
+        top_p: float = 0.95,
+        scorer=best_bert_score_candidate,
+        reference_key: str = "gold_clarification",
+    ) -> dict:
+        prompt = self.build_prompt(example["ambiguous_question"])
+        parsed_outputs = []
+
+        for _ in range(num_candidates):
+            raw_output = self.model.generate(
+                example["image_path"],
+                prompt,
+                do_sample=True,
+                temperature=temperature,
+                top_p=top_p,
+            )
+            parsed = parse_json_output(raw_output)
+            parsed_outputs.append({
+                "generated_clarification": parsed.get("clarification_question", ""),
+                "raw_output": raw_output,
+                "_parse_failed": parsed.get("_parse_failed", False),
+            })
+
+        candidates = [
+            output["generated_clarification"]
+            for output in parsed_outputs
+        ]
+        selection = scorer(candidates, example[reference_key])
+
+        return {
+            "id": example["id"],
+            "condition": self.name,
+            "ambiguous_question": example["ambiguous_question"],
+            "generated_clarification": selection["best_candidate"],
+            "selected_candidate_index": selection["best_index"],
+            "selected_candidate_score": selection["best_score"],
+            "candidate_scores": selection["scores"],
+            "generated_candidates": parsed_outputs,
+            "gold_clarification": example["gold_clarification"],
+            "gold_referential_question": example["gold_referential_question"],
             "gold_answer": example["gold_answer"],
             "answers": example.get("answers", []),
         }

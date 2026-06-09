@@ -1,19 +1,34 @@
 from src.conditions.base import BaseCondition
 
+
 PROMPT = """\
-Given the image and the user's question below, generate ONE clarification question \
-that you think is most appropriate to gain a better understanding of the user's intent.
+Given the image and the user's question below, generate ONE clarification question
+that best resolves the referential ambiguity in the user's question.
 
-The clarification question must help identify what the user means — not ask for \
-the answer to the original question itself. If multiple plausible interpretations \
-exist, offer them as specific options. Do not ask the user to define terms or \
-re-identify what they already said.
+The clarification question must help identify which object, region, person, text,
+or entity the user is referring to. Do not ask for the answer to the original
+question itself.
 
-User question: {ambiguous_question}
+If multiple plausible referents are visible, offer them as specific options. If
+only one plausible referent is likely, ask whether the user means that referent.
 
-Return ONLY a JSON object, no extra text:
+Do not:
+- answer the visual question
+- explain the ambiguity
+- list possible final answers
+- rewrite the original question
+
+Your clarification question should usually start with:
+- "Are you referring to..."
+- "Do you mean..."
+- "Which one..."
+
+User question:
+{ambiguous_question}
+
+Return only this JSON object:
 {{
-    "clarification_question": "..."
+  "clarification_question": "..."
 }}"""
 
 

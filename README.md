@@ -1,77 +1,141 @@
 # DSAIT4230-Group2
 
-# DSAIT4230-Group2
+Pipeline for generating, selecting, and simulating clarification questions for
+ClearVQA referential ambiguity examples (`ambiguity_category == "refer"`).
 
-## Setup (Kaggle)
+## Setup
 
-**Cell 1 — clone and install**
-```python
-%cd /kaggle/working
-!rm -rf DSAIT4230-Group2
-!git clone https://github.com/Kevo627/DSAIT4230-Group2.git
-%cd DSAIT4230-Group2
+Create an environment and install dependencies:
 
-!pip install transformers torch torchvision torchaudio qwen-vl-utils \
-    bitsandbytes bert-score tqdm huggingface_hub pandas Pillow datasets -q
-
-import os, transformers
-os.environ["TRANSFORMERS_VERBOSITY"] = "error"
-transformers.logging.set_verbosity_error()
+```bash
+pip install -r requirements.txt
 ```
 
-**Cell 2 — HF token**
-```python
-from kaggle_secrets import UserSecretsClient
-secrets = UserSecretsClient()
-os.environ["HF_TOKEN"] = secrets.get_secret("hf-token")
+Download the dataset and images:
+
+```bash
+python scripts/download_data.py
 ```
 
-**Cell 3 — download data (images ~3.2GB, run once)**
-```python
-!python scripts/download_data.py
+## Run The Pipeline
+
+Local run:
+
+```bash
+python main.py --limit 5 --resume
 ```
 
-**Cell 4 — run baselines**
-```python
-!python scripts/run_baselines.py \
-    --model Qwen/Qwen2.5-VL-7B-Instruct \
-    --load_in_4bit \
-    --n_samples 5 \
-    --output results/baselines.jsonl \
-    --resume
+Kaggle run:
+
+```bash
+python main.py \
+  --runtime kaggle \
+  --model Qwen/Qwen2.5-VL-7B-Instruct \
+  --n_samples 5 \
+  --output results/pipeline.jsonl \
+  --resume
 ```
 
-**Cell 5 — simulate user responses **
-```python
-!python scripts/simulate_responses.py \
-    --load_in_4bit \
-    --resume
+`--runtime kaggle` enables 4-bit model loading by default. You can also pass
+`--load_in_4bit` directly when running on a local CUDA GPU with limited memory.
+
+## Conditions
+
+`main.py` supports three prompting strategies:
+
+```text
+standard
+at_cot
+answer_impact
 ```
 
-## Repo structure
+Run a single strategy:
 
+```bash
+python main.py --conditions answer_impact --limit 10
+```
+
+## Output
+
+The default output is:
+
+```text
+results/pipeline.jsonl
+```
+
+Each JSONL row includes:
+
+```text
+id
+condition
+image_path
+ambiguous_question
+candidate_clarifications
+generated_clarification
+selected_candidate_index
+selected_candidate_score
+candidate_scores
+chosen_strategy
+original_image
+original_blurred_question
+generated_clarification_questions
+user_response
+answer_response
+gold_clarification
+gold_referential_question
+gold_answer
+answers
+```
+
+The `answer_response` field is currently left as `null`.
+
+## Referential Dataset
+
+The dataset loader uses only the referential subset:
+
+```python
+from src.dataset import load_referential_examples
+
+examples = load_referential_examples(limit=5)
+```
+
+## Tests
+
+```bash
+pytest
+```
+
+If `bert-score` is missing in a fresh environment:
+
+```bash
+pip install bert-score
+```
+
+## Repo Structure
+
+```text
 DSAIT4230-Group2/
-├── scripts/
-│   ├── download_data.py
-│   ├── run_baselines.py
-│   └── simulate_responses.py
-├── src/
-│   ├── __init__.py
-│   ├── dataset.py
-│   ├── model.py
-│   ├── user_simulator.py
-│   └── conditions/
-│       ├── __init__.py
-│       ├── base.py
-│       ├── standard.py
-│       ├── cot.py
-│       ├── at.py
-│       └── at_cot.py
-├── data/
-│   ├── val_annotated.jsonl
-│   └── images/
-│       └── images/
-├── results/
-├── requirements.txt
-└── README.md
-
+  main.py
+  scripts/
+    download_data.py
+    simulate_responses.py
+  src/
+    dataset.py
+    model.py
+    user_simulator.py
+    conditions/
+      base.py
+      standard.py
+      at_cot.py
+      answer_impact.py
+      old/
+        at.py
+        cot.py
+        at_subtype.py
+  data/
+    val_annotated.jsonl
+    images/
+  results/
+  requirements.txt
+  README.md
+```

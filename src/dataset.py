@@ -41,7 +41,7 @@ def load_referential_examples(
             "id": str(row["question_id"]),
             "image_path": image_path,
             "ambiguous_question": row["blurred_question"],
-            "gold_intended_question": row["question"],
+            "gold_referential_question": row["question"],
             "gold_clarification": row["clarification_question"],
             "gold_answer": str(row["gold_answer"]),
             "answers": [str(a) for a in row.get("answers", [])],
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     for ex in examples:
         print(f"ID                   : {ex['id']}")
         print(f"Ambiguous Q          : {ex['ambiguous_question']}")
-        print(f"Gold intended Q      : {ex['gold_intended_question']}")
+        print(f"Gold referential Q   : {ex['gold_referential_question']}")
         print(f"Gold clarification   : {ex['gold_clarification']}")
         print(f"Gold answer          : {ex['gold_answer']}")
         print(f"Image path           : {ex['image_path']}")
