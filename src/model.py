@@ -50,10 +50,13 @@ class VLMWrapper:
             kwargs["device_map"] = "auto"
         else:
             kwargs["device_map"] = self.device
+        local = os.path.isdir(self.model_name)
         self._model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-            self.model_name, **kwargs
+            self.model_name, **kwargs, local_files_only=local
         )
-        self._processor = AutoProcessor.from_pretrained(self.model_name)
+        self._processor = AutoProcessor.from_pretrained(
+            self.model_name, local_files_only=local
+        )
         self._model.eval()
         print("Model ready.")
 
