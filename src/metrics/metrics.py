@@ -97,7 +97,7 @@ class VQAScorer:
 
 def bert_score_comp(generated_questions: list[str], reference_questions: list[str],) -> dict:
     
-    P, R, F1 = score(generated_questions, reference_questions, lang="en", verbose=False)
+    P, R, F1 = score(generated_questions, reference_questions, lang="en", verbose=False, model_type="distilbert-base-uncased")
     
     return {
         "precision": float(P.mean()), 
@@ -122,7 +122,7 @@ def bert_score_candidates(
         return []
 
     references = [reference_question] * len(candidates)
-    P, R, F1 = score(candidates, references, lang="en", verbose=False)
+    P, R, F1 = score(candidates, references, lang="en", verbose=False, model_type="distilbert-base-uncased")
 
     precisions = _score_values_to_floats(P)
     recalls = _score_values_to_floats(R)
