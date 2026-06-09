@@ -28,15 +28,19 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.dataset import load_intent_examples
 from src.model import VLMWrapper
 from src.conditions.standard import StandardCondition
-from src.conditions.at import ATCondition
-from src.conditions.cot import CoTCondition
 from src.conditions.at_cot import ATCoTCondition
+from src.conditions.answer_impact import AnswerImpactCondition
+# from src.conditions.at import ATCondition
+# from src.conditions.cot import CoTCondition
+# from src.conditions.at_subtype import ATSubtypeCondition
 
 ALL_CONDITIONS = {
     "standard": StandardCondition,
-    "at": ATCondition,
-    "cot": CoTCondition,
     "at_cot": ATCoTCondition,
+    "answer_impact": AnswerImpactCondition,
+    # "at": ATCondition,
+    # "cot": CoTCondition,
+    # "at_subtype": ATSubtypeCondition,
 }
 
 DEFAULT_OUTPUT = os.path.join("results", "baselines.jsonl")
@@ -67,7 +71,7 @@ def main():
         nargs="+",
         choices=list(ALL_CONDITIONS.keys()),
         default=list(ALL_CONDITIONS.keys()),
-        help="Which conditions to run (default: all four)",
+        help="Which conditions to run (default: all available conditions)",
     )
     parser.add_argument(
         "--limit",
@@ -90,7 +94,7 @@ def main():
         "--model",
         type=str,
         default=None,
-        help="HuggingFace model name (default: Qwen/Qwen2.5-VL-3B-Instruct)",
+        help="HuggingFace model name or local model path (default: Qwen/Qwen2.5-VL-7B-Instruct)",
     )
     args = parser.parse_args()
 

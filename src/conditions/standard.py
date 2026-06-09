@@ -1,15 +1,34 @@
 from src.conditions.base import BaseCondition
 
 PROMPT = """\
-Given the image and the user's question below, generate ONE clarification question \
-that would help answer the user more accurately. Target the most important missing \
-information or ambiguity.
+### Instruction:
+You are given an image and an ambiguous visual question.
 
-User question: {ambiguous_question}
+Your task is NOT to answer the question.
+Your task is ONLY to ask one clarification question that would help determine what the user wants to know.
 
-Return ONLY a JSON object, no extra text:
+The input question is known to be ambiguous due to missing user intent.
+Ask about the user's intended aspect, goal, criterion, or desired answer type.
+
+Do not:
+- answer the visual question
+- explain the ambiguity
+- list possible answers
+- identify objects in the image
+- rewrite the original question
+
+Your clarification question should usually start with:
+- "Are you asking about..."
+- "Do you want to know..."
+- "Which aspect..."
+
+### Question:
+{ambiguous_question}
+
+### Output:
+Return only this JSON object:
 {{
-    "clarification_question": "..."
+  "clarification_question": "..."
 }}"""
 
 
