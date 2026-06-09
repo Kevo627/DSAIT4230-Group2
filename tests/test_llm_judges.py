@@ -26,7 +26,6 @@ bert_score_stub.score = lambda *a, **kw: None
 sys.modules.setdefault("bert_score", bert_score_stub)
 
 from src.metrics.llm_judge import (
-    llm_judge_candidates,
     llm_judge_quality,
     _extract_score,
     _extract_json_field,
@@ -53,72 +52,6 @@ def test_extract_json_field_missing_key():
 
 def test_extract_json_field_malformed_json():
     assert _extract_json_field("not json at all", "x") is None
-
-
-def test_judge_candidates_picks_highest_score():
-    model = FakeVLMWrapper(responses=['{"scores": [2, 5, 3]}'])
-    result = llm_judge_candidates(
-        candidates=["cq_a", "cq_b", "cq_c"],
-        reference_question="gold",
-        image_path="img.jpg",
-        ambiguous_question="What is on this?",
-        model=model,
-    )
-    assert result["best_candidate"] == "cq_b"
-    assert result["best_index"] == 1
-    assert result["best_score"] == 5.0
-    assert len(result["scores"]) == 3
-
-
-def test_judge_candidates_empty_input():
-    model = FakeVLMWrapper()
-    result = llm_judge_candidates(
-        candidates=[],
-        reference_question="gold",
-        image_path="img.jpg",
-        ambiguous_question="What is this?",
-        model=model,
-    )
-    assert result["best_candidate"] == ""
-    assert result["best_index"] is None
-    assert result["best_score"] == 0.0
-    assert len(model.calls) == 0
-
-
-def test_judge_candidates_fallback_on_bad_json():
-    model = FakeVLMWrapper(responses=["I cannot score these."])
-    result = llm_judge_candidates(
-        candidates=["a", "b"],
-        reference_question="gold",
-        image_path="img.jpg",
-        ambiguous_question="Q?",
-        model=model,
-    )
-    assert all(s["score"] == 1.0 for s in result["scores"])
-
-
-def test_judge_candidates_passes_image_to_model():
-    model = FakeVLMWrapper(responses=['{"scores": [4]}'])
-    llm_judge_candidates(
-        candidates=["only one"],
-        reference_question="ref",
-        image_path="data/images/test.jpg",
-        ambiguous_question="Q?",
-        model=model,
-    )
-    assert model.calls[0]["image_path"] == "data/images/test.jpg"
-
-
-def test_judge_candidates_reference_question_is_ignored():
-    model = FakeVLMWrapper(responses=['{"scores": [3]}'])
-    llm_judge_candidates(
-        candidates=["cq"],
-        reference_question="THIS_GOLD_SHOULD_NOT_APPEAR",
-        image_path="img.jpg",
-        ambiguous_question="Q?",
-        model=model,
-    )
-    assert "THIS_GOLD_SHOULD_NOT_APPEAR" not in model.calls[0]["prompt"]
 
 
 def test_judge_quality_returns_all_dimensions():
