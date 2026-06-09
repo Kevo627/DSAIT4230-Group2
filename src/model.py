@@ -1,15 +1,18 @@
 import os
 import json
 import torch
-from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
+from transformers import (
+    Qwen2_5_VLForConditionalGeneration,
+    AutoProcessor,
+    BitsAndBytesConfig,
+)
 from qwen_vl_utils import process_vision_info
 
-DEFAULT_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
+
+DEFAULT_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
 
 
 def _get_device() -> str:
-    if torch.backends.mps.is_available():
-        return "mps"
     if torch.cuda.is_available():
         return "cuda"
     return "cpu"
@@ -18,8 +21,6 @@ def _get_device() -> str:
 def _get_dtype(device: str):
     if device == "cuda":
         return torch.bfloat16
-    if device == "mps":
-        return torch.float16
     return torch.float32
 
 
@@ -55,6 +56,30 @@ class VLMWrapper:
                 self.model_name,
                 torch_dtype=dtype,
             ).to(self.device)
+            
+        """ split kaggle vs gpu"""
+        dtype = _get_dtype(self.device)
+        print(f"Loading {self.model_name} on {self.device} ({dtype}) ...")
+        load_kwargs = {}
+        if self.device == "cuda":
+            load_kwargs.update(
+                quantization_config=BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_use_double_quant=True,
+                ),
+                device_map="auto",
+            )
+        else:
+            load_kwargs.update(torch_dtype=dtype)
+
+        self._model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+            self.model_name,
+            **load_kwargs,
+        )
+        if self.device != "cuda":
+            self._model = self._model.to(self.device)
         self._processor = AutoProcessor.from_pretrained(self.model_name)
         self._model.eval()
         print("Model ready.")
@@ -63,6 +88,26 @@ class VLMWrapper:
     def _input_device(self) -> str:
         # with device_map="auto" (4-bit), inputs must go to cuda explicitly
         return "cuda" if self.device == "cuda" else self.device
+    def generate(
+        self,
+        image_path: str,
+        prompt: str,
+        max_new_tokens: int = 512,
+        do_sample: bool = False,
+        temperature: float = 0.2,
+        top_p: float = 1.0,
+    ) -> str:
+        self.load()
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image", "image": f"file://{os.path.abspath(image_path)}"},
+                    {"type": "text", "text": prompt},
+                ],
+            }
+        ]
 
     def generate(self, image_path: str, prompt: str, max_new_tokens: int = 512,
                  do_sample: bool = False, temperature: float = 0.8, top_p: float = 0.95) -> str:
@@ -105,4 +150,5 @@ def parse_json_output(text: str) -> dict:
                 return obj
         except json.JSONDecodeError:
             pass
+
     return {"clarification_question": text.strip(), "_parse_failed": True}

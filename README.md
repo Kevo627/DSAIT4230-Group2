@@ -48,6 +48,14 @@ os.environ["HF_TOKEN"] = secrets.get_secret("hf-token")
     --resume
 ```
 
+### 4. For running the metric tests, run the following command to install bert_score. 
+
+``pip install bert_score``
+### 4. Baseline model
+The default baseline model is `Qwen/Qwen2.5-VL-7B-Instruct`, loaded in 4-bit on CUDA when available. Override it with `--model` if you want to compare against another Hugging Face checkpoint or local model path.
+
+The repo now targets Windows only, so the install uses `bitsandbytes` instead of AWQ/TRITON.
+
 ## Repo structure
 
 DSAIT4230-Group2/

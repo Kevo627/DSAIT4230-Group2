@@ -18,12 +18,22 @@ Before generating the clarification question, provide a textual explanation of y
 reasoning about why this referential ambiguity exists in the image context — identifying \
 the plausible referents — and how you plan to clarify it.
 
+Hard rules:
+- Do NOT answer the original visual question.
+- Do NOT state which interpretation is correct.
+- Do NOT say "it is", "there is", "the answer is", or give a final answer.
+- Do NOT ask the user to identify a visible object unless that is necessary to
+  clarify their intent.
+- The clarification_question field MUST be a question addressed to the user.
+- The clarification_question should usually start with "Are you asking about",
+  "Do you want to know", "Which aspect", or "What specific".
+
 User question: {ambiguous_question}
 
-Return ONLY a JSON object, no extra text:
+Return ONLY this JSON object, no extra text:
 {{
-    "reasoning": "...",
-    "clarification_question": "..."
+  "reasoning": "The underspecified intent is ... Plausible user intents include ... The missing intent information is ...",
+  "clarification_question": "..."
 }}"""
 
 
