@@ -105,6 +105,74 @@ def bert_score_comp(generated_questions: list[str], reference_questions: list[st
         "f1": float(F1.mean()),
         }
 
+
+def _score_values_to_floats(values) -> list[float]:
+    if hasattr(values, "tolist"):
+        values = values.tolist()
+    if isinstance(values, (float, int)):
+        return [float(values)]
+    return [float(value) for value in values]
+
+
+def bert_score_candidates(
+    candidates: list[str],
+    reference_question: str,
+) -> list[dict]:
+    if len(candidates) == 0:
+        return []
+
+    references = [reference_question] * len(candidates)
+    P, R, F1 = score(candidates, references, lang="en", verbose=False)
+
+    precisions = _score_values_to_floats(P)
+    recalls = _score_values_to_floats(R)
+    f1s = _score_values_to_floats(F1)
+
+    return [
+        {
+            "candidate": candidate,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+        }
+        for candidate, precision, recall, f1 in zip(
+            candidates,
+            precisions,
+            recalls,
+            f1s,
+        )
+    ]
+
+
+def best_bert_score_candidate(
+    candidates: list[str],
+    reference_question: str,
+    metric: str = "f1",
+) -> dict:
+    if metric not in {"precision", "recall", "f1"}:
+        raise ValueError("metric must be one of: precision, recall, f1")
+
+    scored_candidates = bert_score_candidates(candidates, reference_question)
+    if len(scored_candidates) == 0:
+        return {
+            "best_candidate": "",
+            "best_index": None,
+            "best_score": 0.0,
+            "scores": [],
+        }
+
+    best_index, best_score = max(
+        enumerate(scored_candidates),
+        key=lambda item: item[1][metric],
+    )
+
+    return {
+        "best_candidate": best_score["candidate"],
+        "best_index": best_index,
+        "best_score": best_score[metric],
+        "scores": scored_candidates,
+    }
+
 ### Improvement over baseline
 
 def improvement_over_baseline(strategy_score: float, baseline_score: float) -> dict:
