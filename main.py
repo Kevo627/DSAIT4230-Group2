@@ -3,7 +3,7 @@ End-to-end clarification pipeline.
 
 Pipeline:
 Dataset -> prompt condition -> candidate clarification questions ->
-BERTScore selection -> simulated user response -> TODO answer response.
+BERTScore selection -> simulated user response -> final answer response.
 """
 
 # Final row fields:
@@ -13,7 +13,8 @@ BERTScore selection -> simulated user response -> TODO answer response.
 # generated_clarification_questions, generated_clarification,
 # selected_clarification, selected_candidate_index, selected_candidate_score,
 # candidate_scores, selection_strategy, user_response, simulate_raw_output,
-# simulate_parse_failed, answer_response.
+# simulate_parse_failed, answer_response, answer_raw_output, answer_parse_failed,
+# answer_strategy.
 
 import argparse
 import json
@@ -23,6 +24,22 @@ from typing import Any
 
 CONDITION_NAMES = ["standard", "at_cot", "answer_impact"]
 DEFAULT_OUTPUT = os.path.join("results", "pipeline.jsonl")
+ANSWER_STRATEGY = "vlm_chat_history_selected_cq"
+
+FINAL_ANSWER_REQUEST = """\
+Now answer the original ambiguous question using the image and the clarification exchange.
+
+Return ONLY this JSON object, no extra text:
+{{
+  "answer_response": "..."
+}}"""
+
+# Helper to build a text message dict for the VLM chat interface
+def text_message(role: str, text: str) -> dict:
+    return {
+        "role": role,
+        "content": [{"type": "text", "text": text}],
+    }
 
 
 def load_completed(output_path: str) -> set[tuple[str, str]]:
@@ -126,12 +143,91 @@ def add_simulated_user_response(row: dict, simulator: Any) -> dict:
     }
 
 
-def generate_final_answer_response(row: dict) -> dict:
-    # TODO: Generate the final answer response using the image, original question,
-    # selected clarification, and simulated user response.
+# Build the message list for the final answer generation to simulate full conversation
+def build_final_answer_messages(row: dict) -> list[dict]:
+    first_turn = (
+        "The user asked this ambiguous visual question:\n"
+        f"{row['ambiguous_question']}\n\n"
+        "Ask one clarification question that identifies which visible referent "
+        "the user means. Do not answer the original question yet."
+    )
+
+    return [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "image": f"file://{os.path.abspath(row['image_path'])}",
+                },
+                {"type": "text", "text": first_turn},
+            ],
+        },
+        text_message("assistant", row["generated_clarification"]),
+        text_message("user", row["user_response"]),
+        text_message("user", FINAL_ANSWER_REQUEST),
+    ]
+
+# parse the final answer from the VLM 
+def parse_answer_response(raw_output: str) -> dict:
+    try:
+        parsed = json.loads(raw_output)
+        if isinstance(parsed, dict):
+            answer = parsed.get(
+                "answer_response",
+                parsed.get("final_answer", parsed.get("answer", "")),
+            )
+            return {
+                "answer_response": str(answer).strip(),
+                "answer_parse_failed": "answer_response" not in parsed
+                and "final_answer" not in parsed
+                and "answer" not in parsed,
+            }
+    except json.JSONDecodeError:
+        pass
+
+    start = raw_output.find("{")
+    if start != -1:
+        try:
+            parsed, _ = json.JSONDecoder().raw_decode(raw_output, start)
+            if isinstance(parsed, dict):
+                answer = parsed.get(
+                    "answer_response",
+                    parsed.get("final_answer", parsed.get("answer", "")),
+                )
+                return {
+                    "answer_response": str(answer).strip(),
+                    "answer_parse_failed": "answer_response" not in parsed
+                    and "final_answer" not in parsed
+                    and "answer" not in parsed,
+                }
+        except json.JSONDecodeError:
+            pass
+
+    return {
+        "answer_response": raw_output.strip(),
+        "answer_parse_failed": True,
+    }
+
+# Using the full conversation, to generate final answer, use no more than max_new_tokens (default 64) 
+def generate_final_answer_response(
+    row: dict,
+    model: Any,
+    max_new_tokens: int,
+) -> dict:
+    raw_output = model.generate_from_messages(
+        build_final_answer_messages(row),
+        max_new_tokens=max_new_tokens,
+        do_sample=False,
+    )
+    parsed = parse_answer_response(raw_output)
+
     return {
         **row,
-        "answer_response": None,
+        "answer_response": parsed["answer_response"],
+        "answer_raw_output": raw_output,
+        "answer_parse_failed": parsed["answer_parse_failed"],
+        "answer_strategy": ANSWER_STRATEGY,
     }
 
 
@@ -139,15 +235,17 @@ def run_pipeline_for_example(
     example: dict,
     condition: Any,
     simulator: Any,
+    model: Any,
     n_samples: int,
     bert_metric: str,
     reference_key: str,
+    answer_max_new_tokens: int,
 ) -> dict:
     row = condition.run(example, n_samples=n_samples)
     row = add_question_quality_fields(row)
     row = select_best_clarification(row, reference_key, bert_metric)
     row = add_simulated_user_response(row, simulator)
-    return generate_final_answer_response(row)
+    return generate_final_answer_response(row, model, answer_max_new_tokens)
 
 
 def parse_args() -> argparse.Namespace:
@@ -215,6 +313,12 @@ def parse_args() -> argparse.Namespace:
         default="gold_clarification",
         help="Dataset field used as the BERTScore reference.",
     )
+    parser.add_argument(
+        "--answer-max-new-tokens",
+        type=int,
+        default=64,
+        help="Maximum new tokens for the final answer generation.",
+    )
     return parser.parse_args()
 
 
@@ -272,9 +376,11 @@ def main() -> None:
                             example,
                             condition,
                             simulator,
+                            model,
                             n_samples=args.n_samples,
                             bert_metric=args.bert_metric,
                             reference_key=args.reference_key,
+                            answer_max_new_tokens=args.answer_max_new_tokens,
                         )
                     except Exception as exc:
                         result = {

@@ -78,14 +78,30 @@ class VLMWrapper:
         temperature: float = 0.8,
         top_p: float = 0.95,
     ) -> str:
-        self.load()
-        import torch
-        from qwen_vl_utils import process_vision_info
-
         messages = [{"role": "user", "content": [
             {"type": "image", "image": f"file://{os.path.abspath(image_path)}"},
             {"type": "text", "text": prompt},
         ]}]
+        return self.generate_from_messages(
+            messages,
+            max_new_tokens=max_new_tokens,
+            do_sample=do_sample,
+            temperature=temperature,
+            top_p=top_p,
+        )
+
+    def generate_from_messages(
+        self,
+        messages: list[dict],
+        max_new_tokens: int = 512,
+        do_sample: bool = False,
+        temperature: float = 0.8,
+        top_p: float = 0.95,
+    ) -> str:
+        self.load()
+        import torch
+        from qwen_vl_utils import process_vision_info
+
         text = self._processor.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
