@@ -1,11 +1,10 @@
-"""
-Base class for all clarification conditions.
-Each condition implements build_prompt() and parses model output into a result dict.
-"""
-
 from abc import ABC, abstractmethod
 from src.model import VLMWrapper, parse_json_output
 from src.metrics.metrics import best_bert_score_candidate
+
+N_SAMPLES = 5          
+SAMPLE_TEMPERATURE = 0.8
+SAMPLE_TOP_P = 0.95
 
 
 class BaseCondition(ABC):
@@ -18,22 +17,45 @@ class BaseCondition(ABC):
     def build_prompt(self, ambiguous_question: str) -> str:
         pass
 
-    def run(self, example: dict) -> dict:
+    def _call_once(
+        self,
+        image_path: str,
+        prompt: str,
+        do_sample: bool = False,
+    ) -> dict:
+        raw = self.model.generate(
+            image_path,
+            prompt,
+            do_sample=do_sample,
+            temperature=SAMPLE_TEMPERATURE if do_sample else 1.0,
+            top_p=SAMPLE_TOP_P if do_sample else 1.0,
+        )
+        parsed = parse_json_output(raw)
+        return {
+            "clarification_question": parsed.get("clarification_question", ""),
+            "reasoning": parsed.get("reasoning", None),
+            "raw_output": raw,
+            "_parse_failed": parsed.get("_parse_failed", False),
+        }
+
+    def run(self, example: dict, n_samples: int = N_SAMPLES) -> dict:
         prompt = self.build_prompt(example["ambiguous_question"])
-        raw_output = self.model.generate(example["image_path"], prompt)
-        parsed = parse_json_output(raw_output)
+
+        candidates = []
+        for i in range(n_samples):
+            sample = self._call_once(
+                example["image_path"],
+                prompt,
+                do_sample=(i > 0),   # greedy for first, sampled for rest
+            )
+            candidates.append(sample)
 
         return {
             "id": example["id"],
             "condition": self.name,
+            "image_path": example["image_path"],   # add this line
             "ambiguous_question": example["ambiguous_question"],
-            "generated_clarification": parsed.get("clarification_question", ""),
-            "reasoning": parsed.get("reasoning", None),
-            "plausible_intents": parsed.get("plausible_intents", None),
-            "ambiguity_subtype": parsed.get("ambiguity_subtype", None),
-            "answer_impact": parsed.get("answer_impact", None),
-            "raw_output": raw_output,
-            "_parse_failed": parsed.get("_parse_failed", False),
+            "candidate_clarifications": candidates,
             "gold_clarification": example["gold_clarification"],
             "gold_intended_question": example["gold_intended_question"],
             "gold_answer": example["gold_answer"],

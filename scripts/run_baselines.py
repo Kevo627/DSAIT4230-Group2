@@ -1,18 +1,36 @@
 """
-Run all baseline conditions on the ClearVQA intent subset.
+Run all baseline conditions on the ClearVQA referential-ambiguity subset.
+Each condition is called n_samples times per example (default 5), producing
+a list of candidate CQs that the downstream scoring step will rank.
+
+Output schema per JSONL line:
+  {
+    "id": str,
+    "condition": str,
+    "ambiguous_question": str,
+    "candidate_clarifications": [
+        {"clarification_question": str, "reasoning": str|null,
+         "raw_output": str, "_parse_failed": bool},
+        ...   # n_samples entries
+    ],
+    "gold_clarification": str,
+    "gold_intended_question": str,
+    "gold_answer": str,
+    "answers": [str, ...]
+  }
 
 Usage:
     # Smoke test on 5 examples
     python scripts/run_baselines.py --limit 5
 
-    # Run specific conditions only
+    # Run specific conditions
     python scripts/run_baselines.py --conditions standard at_cot --limit 20
 
-    # Full run (1095 examples × 4 conditions — run overnight)
-    python scripts/run_baselines.py
-
-    # Resume an interrupted run (skips already-saved IDs)
+    # Full run (resume-safe)
     python scripts/run_baselines.py --resume
+
+    # Override number of candidate CQs per example
+    python scripts/run_baselines.py --n_samples 3
 """
 
 import argparse
@@ -22,12 +40,21 @@ import sys
 
 from tqdm import tqdm
 
-# Allow running from repo root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.dataset import load_intent_examples
+from src.dataset import load_referential_examples
+from src.model import VLMWrapper
+from src.conditions.standard import StandardCondition
+from src.conditions.at import ATCondition
+from src.conditions.cot import CoTCondition
+from src.conditions.at_cot import ATCoTCondition
 
-ALL_CONDITION_NAMES = ["standard", "at", "cot", "at_cot"]
+ALL_CONDITIONS = {
+    "standard": StandardCondition,
+    "at": ATCondition,
+    "cot": CoTCondition,
+    "at_cot": ATCoTCondition,
+}
 
 DEFAULT_OUTPUT = os.path.join("results", "baselines.jsonl")
 DEFAULT_SAMPLED_OUTPUT = os.path.join("results", "baselines_sampled.jsonl")
@@ -59,6 +86,12 @@ def main():
         choices=ALL_CONDITION_NAMES,
         default=ALL_CONDITION_NAMES,
         help="Which conditions to run (default: all four)",
+    )
+    parser.add_argument(
+        "--n_samples",
+        type=int,
+        default=5,
+        help="Number of candidate CQs to generate per (example, condition) pair",
     )
     parser.add_argument(
         "--limit",
@@ -108,6 +141,11 @@ def main():
         default=0.95,
         help="Nucleus sampling top-p used when --sample-candidates > 1",
     )
+    parser.add_argument(
+    "--load_in_4bit",
+    action="store_true",
+    help="Load model in 4-bit (NF4) quantization — required for 7B on a single T4",
+    )
     args = parser.parse_args()
 
     if args.sample_candidates < 1:
@@ -122,21 +160,8 @@ def main():
 
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
 
-    from src.model import VLMWrapper
-    from src.conditions.standard import StandardCondition
-    from src.conditions.at import ATCondition
-    from src.conditions.cot import CoTCondition
-    from src.conditions.at_cot import ATCoTCondition
-
-    all_conditions = {
-        "standard": StandardCondition,
-        "at": ATCondition,
-        "cot": CoTCondition,
-        "at_cot": ATCoTCondition,
-    }
-
-    examples = load_intent_examples(limit=args.limit)
-    print(f"Loaded {len(examples)} examples")
+    examples = load_referential_examples(limit=args.limit)
+    print(f"Loaded {len(examples)} referential-ambiguity examples")
 
     completed = load_completed(args.output) if args.resume else set()
     if completed:
@@ -148,15 +173,26 @@ def main():
             "with BERTScore against ClearVQA clarification_question"
         )
 
+    model = VLMWrapper(model_name=args.model, load_in_4bit=args.load_in_4bit) if args.model \
+    else VLMWrapper(load_in_4bit=args.load_in_4bit)
+    conditions = [ALL_CONDITIONS[name](model) for name in args.conditions]
+    
+    """ kaggle vs local again """
     model = VLMWrapper(model_name=args.model) if args.model else VLMWrapper()
     conditions = [all_conditions[name](model) for name in args.conditions]
+    
 
+  
     total = len(examples) * len(conditions)
     skipped = sum(
         1 for ex in examples for c in conditions
         if (ex["id"], c.name) in completed
     )
-    print(f"Total calls: {total} | To run: {total - skipped} | Skipped: {skipped}")
+    print(
+        f"Total (example, condition) pairs: {total} | "
+        f"To run: {total - skipped} | Skipped: {skipped} | "
+        f"CQ candidates per pair: {args.n_samples}"
+    )
 
     with open(args.output, "a") as out_f:
         with tqdm(total=total - skipped, desc="Running conditions") as pbar:

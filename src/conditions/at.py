@@ -1,12 +1,18 @@
 from src.conditions.base import BaseCondition
 
 PROMPT = """\
-The user's question contains intent underspecification — the user's underlying goal, \
-desired output, success criteria, or expected format are unclear or open to multiple \
-interpretations.
-
 Given the image and the user's question below, generate ONE clarification question \
-targeting the missing intent.
+that you think is most appropriate to gain a better understanding of the user's intent.
+
+The question contains referential ambiguity: the referring expression does not uniquely \
+specify the intended referent — it is unclear which specific object, region, or entity \
+in the image the user means.
+
+The clarification question must ask the user to identify WHICH object or entity \
+they are referring to — not ask for the answer to the original question itself. \
+If multiple plausible referents are visible, offer them as specific options based \
+on what is in the image. If only one plausible referent exists, ask \"Do you mean X?\" \
+Do not ask the user to define terms or re-identify what they already said.
 
 User question: {ambiguous_question}
 

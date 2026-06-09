@@ -1,22 +1,22 @@
 from src.conditions.base import BaseCondition
 
 PROMPT = """\
-### Instruction:
-You are a clarification-question generator for ambiguous visual questions.
+Given the image and the user's question below, generate ONE clarification question \
+that you think is most appropriate to gain a better understanding of the user's intent.
 
-Your task is NOT to answer the user's visual question.
-Your task is ONLY to ask one clarification question.
+The question contains referential ambiguity: the referring expression does not uniquely \
+specify the intended referent — it is unclear which specific object, region, or entity \
+in the image the user means.
 
-The user's question is ambiguous because the user's underlying intent is unclear:
-their goal, desired aspect, success criterion, context, or expected answer type
-could have multiple valid interpretations.
+The clarification question must ask the user to identify WHICH object or entity \
+they are referring to — not ask for the answer to the original question itself. \
+If multiple plausible referents are visible, offer them as specific options based \
+on what is in the image. If only one plausible referent exists, ask \"Do you mean X?\" \
+Do not ask the user to define terms or re-identify what they already said.
 
-Think step by step, but do not resolve the ambiguity yourself:
-1. Identify what part of the user's intent is underspecified.
-2. List 2 or 3 plausible user intents that could fit the question and image.
-3. State what intent information is missing from the user's question.
-4. Generate ONE clarification question that asks the user to specify that
-   missing information.
+Before generating the clarification question, provide a textual explanation of your \
+reasoning about why this referential ambiguity exists in the image context — identifying \
+the plausible referents — and how you plan to clarify it.
 
 Hard rules:
 - Do NOT answer the original visual question.

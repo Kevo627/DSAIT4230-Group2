@@ -1,8 +1,13 @@
 from src.conditions.base import BaseCondition
 
 PROMPT = """\
-### Instruction:
-You are given an image and an ambiguous visual question.
+Given the image and the user's question below, generate ONE clarification question \
+that you think is most appropriate to gain a better understanding of the user's intent.
+
+The clarification question must help identify what the user means — not ask for \
+the answer to the original question itself. If multiple plausible interpretations \
+exist, offer them as specific options. Do not ask the user to define terms or \
+re-identify what they already said.
 
 Your task is NOT to answer the question.
 Your task is ONLY to ask one clarification question that would help determine what the user wants to know.

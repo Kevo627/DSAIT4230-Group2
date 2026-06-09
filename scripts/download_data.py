@@ -1,11 +1,3 @@
-"""
-One-time setup script. Run this after cloning the repo.
-Downloads val_annotated.jsonl and images.zip from HuggingFace and extracts images.
-
-Usage:
-    python scripts/download_data.py
-"""
-
 import os
 import zipfile
 from huggingface_hub import hf_hub_download
