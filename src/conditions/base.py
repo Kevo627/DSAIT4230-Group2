@@ -74,6 +74,7 @@ class BaseCondition(ABC):
         return {
             "id": example["id"],
             "condition": self.name,
+            "image_path": example["image_path"],
             "ambiguous_question": example["ambiguous_question"],
             "generated_clarification": selection["best_candidate"],
             "selected_candidate_index": selection["best_index"],
