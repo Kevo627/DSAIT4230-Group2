@@ -5,29 +5,33 @@ from src.model import VLMWrapper
 
 # The three quality dimensions we score each clarification question on
 _DIMS = ("faithfulness", "reasonableness", "clarity")
+_KEYS = ("f", "r", "c")
 
 # Prompt sent to the VLM judge along with the image.
 # All candidates for one condition are scored in a single call so the judge
 # has the same context for every candidate, making scores comparable.
 _PROMPT = """\
-You are evaluating clarification questions generated for an ambiguous visual question.
-Look carefully at the image before scoring Faithfulness.
+You are an expert evaluator assessing clarification questions for ambiguous visual questions.
+You are shown an image and an ambiguous question a user asked about it.
+Your task is to score each candidate clarification question on three dimensions.
 
 Ambiguous question: {ambiguous_question}
 
 Candidates:
 {candidates_text}
 
-Score each candidate on these three dimensions (1-5):
-  Faithfulness   — grounded in what is visible in the image, no unsupported objects or assumptions
-  Reasonableness — addresses a plausible ambiguity in the original question
-  Clarity        — specific and easy for a user to answer
+Score each candidate on a scale of 1-5 for each dimension:
+  f (Faithfulness) - only refers to objects, people, or details actually visible in the image; \
+does not invent or assume anything not shown. \
+(1 = mentions things not in image, 5 = perfectly grounded in what is visible)
+  r (Reasonableness) - the question makes sense to ask given the ambiguous question; a real user would find it helpful. \
+(1 = irrelevant or unhelpful, 5 = clearly helpful for resolving the ambiguity)
+  c (Clarity) - specific, concise, and easy for a user to answer directly. \
+(1 = vague, hard to answer, 5 = specific, immediately answerable)
 
-Return ONLY a JSON object with key "candidates": a list of {n} objects in the same order, each with keys:
-  "faithfulness", "reasonableness", "clarity"
-
-Example for 2 candidates:
-{{"candidates": [{{"faithfulness": 4, "reasonableness": 3, "clarity": 5}}, {{"faithfulness": 2, "reasonableness": 4, "clarity": 3}}]}}"""
+You MUST score ALL {n} candidates. Return ONLY a JSON object with no extra text:
+{{"candidates": [{{"f": <1-5>, "r": <1-5>, "c": <1-5>}}, ...]}}
+The list must contain exactly {n} objects in the same order as the candidates above."""
 
 
 def _extract_json_field(text: str, field: str):
@@ -88,12 +92,13 @@ def llm_judge_candidates(
         print(f"Warning: expected {len(candidates)} scored candidates, got {len(raw_list)}")
 
     # Build per-candidate result entries; fall back to {} if the model missed a candidate
+    # Model returns short keys f/r/c — map them to full dimension names for output
     results = []
     for idx, cand in enumerate(candidates):
         obj = raw_list[idx] if idx < len(raw_list) else {}
         entry: dict = {"candidate": cand}
-        for dim in _DIMS:
-            entry[dim] = _parse_score(obj.get(dim))
+        for dim, key in zip(_DIMS, _KEYS):
+            entry[dim] = _parse_score(obj.get(key))
         valid = [entry[d] for d in _DIMS if entry[d] is not None]
         entry["mean"] = round(sum(valid) / len(valid), 3) if valid else None
         results.append(entry)
