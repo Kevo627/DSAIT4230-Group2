@@ -20,15 +20,14 @@ Ambiguous question: {ambiguous_question}
 Candidates:
 {candidates_text}
 
-For each candidate, reason through these questions before scoring:
-1. What objects or details does this question refer to — are they visible in the image?
-2. Does it address a real ambiguity the user could have meant?
-3. How easy is it for a user to answer directly?
+For each candidate write a reasoning of 1-2 sentences that:
+- Names the specific object or detail the question refers to and confirms if it is visible in the image
+- Explains whether the question resolves the specific ambiguity in the original question or misses it
 
 Then score on:
   f (Faithfulness) — only refers to what is visible in the image (1 = hallucinated, 5 = fully grounded)
-  r (Reasonableness) — helpful for resolving the ambiguity (1 = irrelevant, 5 = spot on)
-  c (Clarity) — specific and easy to answer (1 = vague, 5 = immediately answerable)
+  r (Reasonableness) — helpful for resolving the ambiguity in the original question (1 = irrelevant, 5 = spot on)
+  c (Clarity) — specific and easy for a user to answer directly (1 = vague, 5 = immediately answerable)
 
 You MUST score ALL {n} candidates. Return ONLY a JSON object with no extra text:
 {{"candidates": [{{"reasoning": "<1-2 sentences>", "f": <1-5>, "r": <1-5>, "c": <1-5>}}, ...]}}
