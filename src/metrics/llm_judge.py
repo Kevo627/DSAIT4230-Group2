@@ -78,7 +78,7 @@ def llm_judge_candidates(
     )
 
     # Single LLM call — image is passed so the judge can verify Faithfulness visually
-    raw = model.generate(image_path, prompt, max_new_tokens=256)
+    raw = model.generate(image_path, prompt, max_new_tokens=512)
 
     # Parse the "candidates" list from the JSON response
     raw_list = _extract_json_field(raw, "candidates")
