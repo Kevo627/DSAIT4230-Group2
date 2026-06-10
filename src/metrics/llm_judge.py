@@ -13,24 +13,22 @@ _KEYS = ("f", "r", "c")
 _PROMPT = """\
 You are an expert evaluator assessing clarification questions for ambiguous visual questions.
 You are shown an image and an ambiguous question a user asked about it.
+
 Be critical and use the full 1-5 range. A score of 5 means near-perfect, 3 means average, 1 means clearly wrong or unhelpful.
+Most candidates should NOT receive a 5 — reserve that for truly excellent questions.
 
 Ambiguous question: {ambiguous_question}
 
 Candidates:
 {candidates_text}
 
-For each candidate write a reasoning of 1-2 sentences that:
-- Names the specific object or detail the question refers to and confirms if it is visible in the image
-- Explains whether the question resolves the specific ambiguity in the original question or misses it
-
-Then score on:
+Score each candidate on these three dimensions and justify each score in one sentence:
   f (Faithfulness) — only refers to what is visible in the image (1 = hallucinated, 5 = fully grounded)
   r (Reasonableness) — helpful for resolving the ambiguity in the original question (1 = irrelevant, 5 = spot on)
   c (Clarity) — specific and easy for a user to answer directly (1 = vague, 5 = immediately answerable)
 
 You MUST score ALL {n} candidates. Return ONLY a JSON object with no extra text:
-{{"candidates": [{{"reasoning": "<1-2 sentences>", "f": <1-5>, "r": <1-5>, "c": <1-5>}}, ...]}}
+{{"candidates": [{{"f": <1-5>, "f_note": "<one sentence>", "r": <1-5>, "r_note": "<one sentence>", "c": <1-5>, "c_note": "<one sentence>"}}, ...]}}
 The list must contain exactly {n} objects in the same order as the candidates above."""
 
 
@@ -96,9 +94,10 @@ def llm_judge_candidates(
     results = []
     for idx, cand in enumerate(candidates):
         obj = raw_list[idx] if idx < len(raw_list) else {}
-        entry: dict = {"candidate": cand, "reasoning": obj.get("reasoning", "")}
+        entry: dict = {"candidate": cand}
         for dim, key in zip(_DIMS, _KEYS):
             entry[dim] = _parse_score(obj.get(key))
+            entry[f"{dim}_note"] = obj.get(f"{key}_note") or ""
         valid = [entry[d] for d in _DIMS if entry[d] is not None]
         entry["mean"] = round(sum(valid) / len(valid), 3) if valid else None
         results.append(entry)
