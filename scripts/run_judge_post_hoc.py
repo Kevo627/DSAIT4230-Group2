@@ -43,6 +43,7 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--judge-model", default=None, dest="judge_model")
+    parser.add_argument("--load_in_4bit", action="store_true")
     args = parser.parse_args()
 
     output_path = args.output or _default_output(args.input)
@@ -76,7 +77,7 @@ def main() -> None:
     to_run = [r for r in rows if (r["id"], r["condition"]) not in completed]
     print(f"To evaluate: {len(to_run)}")
 
-    judge_model = VLMWrapper(model_name=args.judge_model) if args.judge_model else VLMWrapper()
+    judge_model = VLMWrapper(model_name=args.judge_model, load_in_4bit=args.load_in_4bit) if args.judge_model else VLMWrapper(load_in_4bit=args.load_in_4bit)
 
     with open(output_path, "a") as out_f:
         for row in tqdm(to_run, desc="Judge eval"):
