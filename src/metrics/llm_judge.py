@@ -11,24 +11,24 @@ _KEYS = ("f", "r", "c")
 # All candidates for one condition are scored in a single call so the judge
 # has the same context for every candidate, making scores comparable.
 _PROMPT = """\
-You are an expert evaluator assessing clarification questions for ambiguous visual questions.
-You are shown an image and an ambiguous question a user asked about it.
+You are an expert evaluator assessing candiate clarification questions for ambiguous visual questions.
+You are shown an image and an ambiguous question a user asked about it. The best candidate question should resolve the ambiguity in the user's question based on the image content.
 
 Be critical and use the full 1-5 range. A score of 5 means near-perfect, 3 means average, 1 means clearly wrong or unhelpful.
-Most candidates should NOT receive a 5 — reserve that for truly excellent questions.
+Most candidates should NOT receive a 5 — reserve that for truly excellent candidates.
 
 Ambiguous question: {ambiguous_question}
 
 Candidates:
 {candidates_text}
 
-Score each candidate on these three dimensions and justify each score in one sentence:
-  f (Faithfulness) — only refers to what is visible in the image (1 = hallucinated, 5 = fully grounded)
-  r (Reasonableness) — helpful for resolving the ambiguity in the original question (1 = irrelevant, 5 = spot on)
-  c (Clarity) — specific and easy for a user to answer directly (1 = vague, 5 = immediately answerable)
+For each candidate, score these three dimensions. Your notes MUST reference the specific wording of that candidate:
+  f (Faithfulness) — does THIS candidate refer to what is visible? (1 = hallucinated, 5 = fully grounded)
+  r (Reasonableness) — does THIS candidate help resolve the ambiguious question? (1 = irrelevant, 5 = spot on)
+  c (Clarity) — is THIS candidate specific and easy to answer? (1 = vague, 5 = immediately answerable)
 
 You MUST score ALL {n} candidates. Return ONLY a JSON object with no extra text:
-{{"candidates": [{{"f": <1-5>, "f_note": "<one sentence>", "r": <1-5>, "r_note": "<one sentence>", "c": <1-5>, "c_note": "<one sentence>"}}, ...]}}
+{{"candidates": [{{"f": <1-5>, "f_note": "<one sentence about THIS candidate>", "r": <1-5>, "r_note": "<one sentence about THIS candidate>", "c": <1-5>, "c_note": "<one sentence about THIS candidate>"}}, ...]}}
 The list must contain exactly {n} objects in the same order as the candidates above."""
 
 
@@ -80,7 +80,7 @@ def llm_judge_candidates(
     )
 
     # Single LLM call — image is passed so the judge can verify Faithfulness visually
-    raw = model.generate(image_path, prompt, max_new_tokens=512)
+    raw = model.generate(image_path, prompt, max_new_tokens=1024)
 
     # Parse the "candidates" list from the JSON response
     raw_list = _extract_json_field(raw, "candidates")
