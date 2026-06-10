@@ -13,24 +13,25 @@ _KEYS = ("f", "r", "c")
 _PROMPT = """\
 You are an expert evaluator assessing clarification questions for ambiguous visual questions.
 You are shown an image and an ambiguous question a user asked about it.
-Your task is to score each candidate clarification question on three dimensions.
+Be critical and use the full 1-5 range. A score of 5 means near-perfect, 3 means average, 1 means clearly wrong or unhelpful.
 
 Ambiguous question: {ambiguous_question}
 
 Candidates:
 {candidates_text}
 
-Score each candidate on a scale of 1-5 for each dimension:
-  f (Faithfulness) - only refers to objects, people, or details actually visible in the image; \
-does not invent or assume anything not shown. \
-(1 = mentions things not in image, 5 = perfectly grounded in what is visible)
-  r (Reasonableness) - the question makes sense to ask given the ambiguous question; a real user would find it helpful. \
-(1 = irrelevant or unhelpful, 5 = clearly helpful for resolving the ambiguity)
-  c (Clarity) - specific, concise, and easy for a user to answer directly. \
-(1 = vague, hard to answer, 5 = specific, immediately answerable)
+For each candidate, reason through these questions before scoring:
+1. What objects or details does this question refer to — are they visible in the image?
+2. Does it address a real ambiguity the user could have meant?
+3. How easy is it for a user to answer directly?
+
+Then score on:
+  f (Faithfulness) — only refers to what is visible in the image (1 = hallucinated, 5 = fully grounded)
+  r (Reasonableness) — helpful for resolving the ambiguity (1 = irrelevant, 5 = spot on)
+  c (Clarity) — specific and easy to answer (1 = vague, 5 = immediately answerable)
 
 You MUST score ALL {n} candidates. Return ONLY a JSON object with no extra text:
-{{"candidates": [{{"f": <1-5>, "r": <1-5>, "c": <1-5>}}, ...]}}
+{{"candidates": [{{"reasoning": "<1-2 sentences>", "f": <1-5>, "r": <1-5>, "c": <1-5>}}, ...]}}
 The list must contain exactly {n} objects in the same order as the candidates above."""
 
 
@@ -96,7 +97,7 @@ def llm_judge_candidates(
     results = []
     for idx, cand in enumerate(candidates):
         obj = raw_list[idx] if idx < len(raw_list) else {}
-        entry: dict = {"candidate": cand}
+        entry: dict = {"candidate": cand, "reasoning": obj.get("reasoning", "")}
         for dim, key in zip(_DIMS, _KEYS):
             entry[dim] = _parse_score(obj.get(key))
         valid = [entry[d] for d in _DIMS if entry[d] is not None]
