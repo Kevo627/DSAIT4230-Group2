@@ -105,8 +105,7 @@ def main() -> None:
                     "candidates": [],
                     "mean_faithfulness": None,
                     "mean_reasonableness": None,
-                    "mean_clarity": None,
-                    "raw_output": {"error": str(e)},
+                    "raw_outputs": {"error": str(e)},
                 }
 
             out_row = {
@@ -118,8 +117,7 @@ def main() -> None:
                 "judge_candidates": judgment["candidates"],
                 "judge_mean_faithfulness": judgment["mean_faithfulness"],
                 "judge_mean_reasonableness": judgment["mean_reasonableness"],
-                "judge_mean_clarity": judgment["mean_clarity"],
-                "judge_raw_output": judgment["raw_output"],
+                "judge_raw_outputs": judgment["raw_outputs"],
             }
             out_f.write(json.dumps(out_row) + "\n")
             out_f.flush()
