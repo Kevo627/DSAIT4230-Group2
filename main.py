@@ -164,8 +164,7 @@ def build_final_answer_messages(row: dict) -> list[dict]:
             ],
         },
         text_message("assistant", row["generated_clarification"]),
-        text_message("user", row["user_response"]),
-        text_message("user", FINAL_ANSWER_REQUEST),
+        text_message("user", row["user_response"] + "\n\n" + FINAL_ANSWER_REQUEST),
     ]
 
 # parse the final answer from the VLM 

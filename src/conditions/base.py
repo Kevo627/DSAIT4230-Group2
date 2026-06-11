@@ -83,13 +83,13 @@ class BaseCondition(ABC):
             )
             parsed = parse_json_output(raw_output)
             parsed_outputs.append({
-                "generated_clarification": parsed.get("clarification_question", ""),
+                "clarification_question": parsed.get("clarification_question", ""),
                 "raw_output": raw_output,
                 "_parse_failed": parsed.get("_parse_failed", False),
             })
 
         candidates = [
-            output["generated_clarification"]
+            output["clarification_question"]
             for output in parsed_outputs
         ]
         selection = scorer(candidates, example[reference_key])

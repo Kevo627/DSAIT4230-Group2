@@ -45,7 +45,8 @@ def main():
     with open(args.input, "r") as f:
         rows = [json.loads(line) for line in f if line.strip()]
 
-    valid_rows = [r for r in rows if "generated_clarification" in r and "error" not in r]
+    REQUIRED_FIELDS = {"generated_clarification", "image_path", "ambiguous_question", "gold_referential_question"}
+    valid_rows = [r for r in rows if REQUIRED_FIELDS.issubset(r.keys()) and "error" not in r]
     skipped = len(rows) - len(valid_rows)
     if skipped:
         print(f"Skipped {skipped} rows with missing 'generated_clarification' or errors")
