@@ -24,7 +24,9 @@ def download_jsonl():
 
 
 def download_images():
-    if os.path.exists(IMAGES_DIR) and len(os.listdir(IMAGES_DIR)) > 0:
+    if os.path.exists(IMAGES_DIR) and any(
+        f.endswith((".jpg", ".jpeg", ".png")) for f in os.listdir(IMAGES_DIR)
+    ):
         print(f"[skip] {IMAGES_DIR} already exists and is non-empty")
         return
     print("Downloading images.zip (~3.2GB, this will take a while) ...")
