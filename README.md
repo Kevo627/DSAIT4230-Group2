@@ -111,6 +111,19 @@ If `bert-score` is missing in a fresh environment:
 pip install bert-score
 ```
 
+## LLM-as-Judge Evaluation
+
+After running the pipeline, evaluate clarification candidates with the LLM judge:
+
+```bash
+python scripts/run_judge_post_hoc.py \
+    --input results/pipeline.jsonl \
+    --output results/pipeline_judge.jsonl \
+    --judge-model Qwen/Qwen2.5-VL-7B-Instruct
+```
+
+Scores two dimensions per candidate (faithfulness, reasonableness) on a 1–5 scale, following G-Eval (Liu et al., 2023). Use `--resume` to continue interrupted runs.
+
 ## Repo Structure
 
 ```text
