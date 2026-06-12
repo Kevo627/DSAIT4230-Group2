@@ -22,8 +22,9 @@ Does it avoid introducing assumptions or details not shown?
 Be critical. Reserve 5 for questions that are clearly and specifically grounded in the image.
 
 Return ONLY a JSON object with no extra text:
-{{"candidates": [{{"f_score": <1-5>, "note": "<one sentence about THIS candidate's visual grounding>"}}]}}
-The list must contain exactly {n} objects in the same order as the candidates above.""",
+{{"candidates": [{{"index": <candidate index>, "f_score": <1-5>, "note": "<one sentence specific to THIS candidate's visual grounding>"}}]}}
+The list must contain exactly {n} objects, each with the correct "index" field matching the candidate number above.
+Each note must be unique — do not reuse the same note for different candidates.""",
 
     "reasonableness": """\
 You are evaluating whether a clarification question helps resolve an ambiguous visual question.
@@ -42,8 +43,9 @@ A good question narrows down the user's intent by distinguishing between plausib
 Be critical. Reserve 5 for questions that clearly and specifically target the ambiguity.
 
 Return ONLY a JSON object with no extra text:
-{{"candidates": [{{"r_score": <1-5>, "note": "<one sentence about THIS candidate's relevance to the ambiguity>"}}]}}
-The list must contain exactly {n} objects in the same order as the candidates above.""",
+{{"candidates": [{{"index": <candidate index>, "r_score": <1-5>, "note": "<one sentence specific to THIS candidate's relevance to the ambiguity>"}}]}}
+The list must contain exactly {n} objects, each with the correct "index" field matching the candidate number above.
+Each note must be unique — do not reuse the same note for different candidates.""",
 }
 
 
@@ -110,6 +112,8 @@ def llm_judge_candidates(
         raw_list = _extract_json_field(raw, "candidates")
         if not isinstance(raw_list, list):
             raw_list = []
+        if all(isinstance(item, dict) and "index" in item for item in raw_list):
+            raw_list = sorted(raw_list, key=lambda x: x.get("index", 0))
         if len(raw_list) != len(candidates):
             print(f"Warning [{dim}]: expected {len(candidates)} scored candidates, got {len(raw_list)}")
         dim_raw_lists[dim] = raw_list
