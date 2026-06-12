@@ -9,7 +9,7 @@ The question contains referential ambiguity: the referring expression does not
 uniquely specify the target referent. It is unclear which specific object,
 region, person, text, or entity in the image the user means.
 
-Before generating the clarification question, think internally about:
+Work through the following steps, writing your reasoning in the "reasoning" field:
 1. Why the referring expression is ambiguous in this image.
 2. Which plausible referents could match the user's wording.
 3. Which clarification question would separate those referents most directly.
@@ -27,6 +27,7 @@ User question:
 
 Return ONLY this JSON object, no extra text:
 {{
+  "reasoning": "...",
   "clarification_question": "..."
 }}"""
 
