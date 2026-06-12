@@ -48,17 +48,25 @@ The list must contain exactly {n} objects in the same order as the candidates ab
 
 
 def _extract_json_field(text: str, field: str):
-    # Find the first JSON object in the raw model output and return the requested field
     try:
         start = text.find("{")
         if start != -1:
             obj, _ = json.JSONDecoder().raw_decode(text, start)
-            if field in obj:
+            if isinstance(obj, dict) and field in obj:
                 return obj[field]
     except (json.JSONDecodeError, ValueError):
         pass
-    return None
 
+    try:
+        start = text.find("[")
+        if start != -1:
+            arr, _ = json.JSONDecoder().raw_decode(text, start)
+            if isinstance(arr, list):
+                return arr
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    return None
 
 def _parse_score(val) -> int | None:
     # Convert a raw value to an int in [1, 5], or None if invalid
@@ -97,7 +105,7 @@ def llm_judge_candidates(
             ambiguous_question=ambiguous_question,
             candidates_text=candidates_text,
         )
-        raw = model.generate(image_path, prompt, max_new_tokens=512)
+        raw = model.generate(image_path, prompt, max_new_tokens=1024)
         raw_outputs[dim] = raw
         raw_list = _extract_json_field(raw, "candidates")
         if not isinstance(raw_list, list):
