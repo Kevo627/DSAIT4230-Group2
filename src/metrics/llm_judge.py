@@ -22,8 +22,9 @@ Does it avoid introducing assumptions or details not shown?
 Be critical. Reserve 5 for questions that are clearly and specifically grounded in the image.
 
 Return ONLY a JSON object with no extra text:
-{{"candidates": [{{"f_score": <1-5>, "note": "<one sentence about THIS candidate's visual grounding>"}}]}}
-The list must contain exactly {n} objects in the same order as the candidates above.""",
+{{"candidates": [{{"index": <candidate index>, "f_score": <1-5>, "note": "<one sentence specific to THIS candidate's visual grounding>"}}]}}
+The list must contain exactly {n} objects, each with the correct "index" field matching the candidate number above.
+Each note must be unique — do not reuse the same note for different candidates.""",
 
     "reasonableness": """\
 You are evaluating whether a clarification question helps resolve an ambiguous visual question.
@@ -42,23 +43,32 @@ A good question narrows down the user's intent by distinguishing between plausib
 Be critical. Reserve 5 for questions that clearly and specifically target the ambiguity.
 
 Return ONLY a JSON object with no extra text:
-{{"candidates": [{{"r_score": <1-5>, "note": "<one sentence about THIS candidate's relevance to the ambiguity>"}}]}}
-The list must contain exactly {n} objects in the same order as the candidates above.""",
+{{"candidates": [{{"index": <candidate index>, "r_score": <1-5>, "note": "<one sentence specific to THIS candidate's relevance to the ambiguity>"}}]}}
+The list must contain exactly {n} objects, each with the correct "index" field matching the candidate number above.
+Each note must be unique — do not reuse the same note for different candidates.""",
 }
 
 
 def _extract_json_field(text: str, field: str):
-    # Find the first JSON object in the raw model output and return the requested field
     try:
         start = text.find("{")
         if start != -1:
             obj, _ = json.JSONDecoder().raw_decode(text, start)
-            if field in obj:
+            if isinstance(obj, dict) and field in obj:
                 return obj[field]
     except (json.JSONDecodeError, ValueError):
         pass
-    return None
 
+    try:
+        start = text.find("[")
+        if start != -1:
+            arr, _ = json.JSONDecoder().raw_decode(text, start)
+            if isinstance(arr, list):
+                return arr
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    return None
 
 def _parse_score(val) -> int | None:
     # Convert a raw value to an int in [1, 5], or None if invalid
@@ -97,11 +107,13 @@ def llm_judge_candidates(
             ambiguous_question=ambiguous_question,
             candidates_text=candidates_text,
         )
-        raw = model.generate(image_path, prompt, max_new_tokens=512)
+        raw = model.generate(image_path, prompt, max_new_tokens=1024)
         raw_outputs[dim] = raw
         raw_list = _extract_json_field(raw, "candidates")
         if not isinstance(raw_list, list):
             raw_list = []
+        if all(isinstance(item, dict) and "index" in item for item in raw_list):
+            raw_list = sorted(raw_list, key=lambda x: x.get("index", 0))
         if len(raw_list) != len(candidates):
             print(f"Warning [{dim}]: expected {len(candidates)} scored candidates, got {len(raw_list)}")
         dim_raw_lists[dim] = raw_list

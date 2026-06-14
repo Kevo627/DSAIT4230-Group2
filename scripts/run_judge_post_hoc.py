@@ -82,11 +82,11 @@ def main() -> None:
     with open(output_path, "a") as out_f:
         for row in tqdm(to_run, desc="Judge eval"):
             try:
-                raw_candidates = row.get("generated_candidates", [])
+                raw_candidates = row.get("candidate_clarifications", [])
                 candidates = [
-                    c.get("generated_clarification", "")
+                    c.get("clarification_question", "")
                     for c in raw_candidates
-                    if c.get("generated_clarification")
+                    if c.get("clarification_question")
                 ]
                 if not candidates and row.get("generated_clarification"):
                     print(f"Warning: no candidate list for id={row['id']} condition={row['condition']} — falling back to single best candidate")

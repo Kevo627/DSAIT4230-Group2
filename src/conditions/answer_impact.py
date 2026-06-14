@@ -24,11 +24,12 @@ Important distinction:
 User question:
 {ambiguous_question}
 
-Follow these steps internally:
-1. Identify up to 3 plausible referents in the image that could match the user's wording.
-2. Consider whether the final answer would change depending on which referent is meant.
-3. Choose the clarification question that best separates the answer-relevant referents.
-4. The final question should usually have the form:
+Work through these steps and record your reasoning in the "reasoning" field:
+1. List up to 3 plausible referents in the image that match the user's wording.
+2. For each referent, state what the answer to the original question would be.
+3. Identify the pair of referents whose answers differ most from each other.
+4. Write a clarification question that directly separates that pair.
+5. The final question should usually have the form:
    "Are you referring to X, Y, or Z?"
    or
    "Do you mean X or Y?"
@@ -43,6 +44,7 @@ Rules:
 
 Return ONLY this JSON object, no extra text:
 {{
+  "reasoning": "...",
   "clarification_question": "..."
 }}"""
 

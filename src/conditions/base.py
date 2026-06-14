@@ -33,6 +33,7 @@ class BaseCondition(ABC):
         parsed = parse_json_output(raw)
         return {
             "clarification_question": parsed.get("clarification_question", ""),
+            "reasoning": parsed.get("reasoning", ""),
             "raw_output": raw,
             "_parse_failed": parsed.get("_parse_failed", False),
         }
