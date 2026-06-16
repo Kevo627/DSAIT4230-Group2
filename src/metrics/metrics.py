@@ -80,7 +80,10 @@ class VQAScorer:
         prediction = self.normalize(prediction)
         answers = [self.normalize(answer) for answer in answers]
         
-        match = sum(prediction == answer for answer in answers)
+        match = sum(
+            bool(re.search(r'\b' + re.escape(answer) + r'\b', prediction))
+            for answer in answers
+        )
         
         score = min(1.0, match/3.0)
         
