@@ -9,7 +9,7 @@ run: python scripts/run_nll_post_hoc.py --input results/pipeline.jsonl --load_in
 import argparse, json, os, sys
 from statistics import mean
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.model import VLMWrapper
 from main import build_final_answer_messages
 
