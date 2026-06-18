@@ -3,14 +3,13 @@ from src.conditions.base import BaseCondition
 
 PROMPT = """\
 Given the image and the user's question below, generate ONE clarification question
-that best resolves the ambiguity in the user's question.
+that would help you better understand what the user is asking.
 
 The clarification question should target the most important missing information
 that would allow you to give the most accurate and helpful answer.
 
 Do not:
 - answer the visual question
-- explain the ambiguity
 - list possible final answers
 - rewrite the original question
 
