@@ -1,0 +1,141 @@
+{
+  "metrics": [
+    {
+      "split": "standard",
+      "mean_faithfulness": 3.9107307893361214,
+      "mean_reasonableness": 3.5525175668589406,
+      "vqa_soft_accuracy": 0.5174155346569139
+    },
+    {
+      "split": "novel",
+      "mean_faithfulness": 3.8696384535005226,
+      "mean_reasonableness": 3.7048041884816754,
+      "vqa_soft_accuracy": 0.4991292232671543
+    },
+    {
+      "split": "at_cot",
+      "mean_faithfulness": 3.8737956089911134,
+      "mean_reasonableness": 3.573895208004213,
+      "vqa_soft_accuracy": 0.5276907001044933
+    }
+  ],
+  "paired_t_tests": [
+    {
+      "metric": "mean_faithfulness",
+      "comparison": "standard_vs_novel",
+      "split_a": "standard",
+      "split_b": "novel",
+      "mean_a": 3.9107307893361214,
+      "mean_b": 3.869396236278097,
+      "mean_difference_a_minus_b": 0.041334553058024075,
+      "p_value": 0.004523244187389552,
+      "t_statistic": 2.842527542834701,
+      "n": 1913,
+      "significant_at_0.05": true
+    },
+    {
+      "metric": "mean_faithfulness",
+      "comparison": "standard_vs_at_cot",
+      "split_a": "standard",
+      "split_b": "at_cot",
+      "mean_a": 3.9108582635983264,
+      "mean_b": 3.87372960251046,
+      "mean_difference_a_minus_b": 0.03712866108786611,
+      "p_value": 0.021873406529685165,
+      "t_statistic": 2.2944367073711414,
+      "n": 1912,
+      "significant_at_0.05": true
+    },
+    {
+      "metric": "mean_faithfulness",
+      "comparison": "novel_vs_at_cot",
+      "split_a": "novel",
+      "split_b": "at_cot",
+      "mean_a": 3.8695703084161,
+      "mean_b": 3.8737956089911134,
+      "mean_difference_a_minus_b": -0.004225300575013092,
+      "p_value": 0.786782462996001,
+      "t_statistic": -0.27052905848288766,
+      "n": 1913,
+      "significant_at_0.05": false
+    },
+    {
+      "metric": "mean_reasonableness",
+      "comparison": "standard_vs_novel",
+      "split_a": "standard",
+      "split_b": "novel",
+      "mean_a": 3.5529784550709405,
+      "mean_b": 3.7045937992643196,
+      "mean_difference_a_minus_b": -0.15161534419337888,
+      "p_value": 1.443145919295545e-17,
+      "t_statistic": -8.61504830558708,
+      "n": 1903,
+      "significant_at_0.05": true
+    },
+    {
+      "metric": "mean_reasonableness",
+      "comparison": "standard_vs_at_cot",
+      "split_a": "standard",
+      "split_b": "at_cot",
+      "mean_a": 3.55178911205074,
+      "mean_b": 3.57284778012685,
+      "mean_difference_a_minus_b": -0.021058668076109933,
+      "p_value": 0.2519869428363106,
+      "t_statistic": -1.1458868909570008,
+      "n": 1892,
+      "significant_at_0.05": false
+    },
+    {
+      "metric": "mean_reasonableness",
+      "comparison": "novel_vs_at_cot",
+      "split_a": "novel",
+      "split_b": "at_cot",
+      "mean_a": 3.705457519788918,
+      "mean_b": 3.572995778364116,
+      "mean_difference_a_minus_b": 0.1324617414248021,
+      "p_value": 2.3725715869454342e-14,
+      "t_statistic": 7.688637389647797,
+      "n": 1895,
+      "significant_at_0.05": true
+    },
+    {
+      "metric": "vqa_soft_accuracy",
+      "comparison": "standard_vs_novel",
+      "split_a": "standard",
+      "split_b": "novel",
+      "mean_a": 0.5174155346569139,
+      "mean_b": 0.4991292232671543,
+      "mean_difference_a_minus_b": 0.018286311389759665,
+      "p_value": 0.031945371204823776,
+      "t_statistic": 2.1466648792138647,
+      "n": 1914,
+      "significant_at_0.05": true
+    },
+    {
+      "metric": "vqa_soft_accuracy",
+      "comparison": "standard_vs_at_cot",
+      "split_a": "standard",
+      "split_b": "at_cot",
+      "mean_a": 0.5174155346569139,
+      "mean_b": 0.5276907001044933,
+      "mean_difference_a_minus_b": -0.01027516544757924,
+      "p_value": 0.2155776697754993,
+      "t_statistic": -1.2387834795052695,
+      "n": 1914,
+      "significant_at_0.05": false
+    },
+    {
+      "metric": "vqa_soft_accuracy",
+      "comparison": "novel_vs_at_cot",
+      "split_a": "novel",
+      "split_b": "at_cot",
+      "mean_a": 0.4991292232671543,
+      "mean_b": 0.5276907001044933,
+      "mean_difference_a_minus_b": -0.028561476837338905,
+      "p_value": 0.0009374704181752312,
+      "t_statistic": -3.3138228950108712,
+      "n": 1914,
+      "significant_at_0.05": true
+    }
+  ]
+}
